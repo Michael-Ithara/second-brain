@@ -1,0 +1,33 @@
+
+[functions.embed-note]
+enabled = true
+verify_jwt = true
+import_map = "./functions/embed-note/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/embed-note/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/embed-note/*.html" ]
+
+[functions.chat]
+enabled = true
+verify_jwt = true
+import_map = "./functions/chat/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/chat/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/chat/*.html" ]
+
+[functions.scrape-url]
+enabled = true
+verify_jwt = true
+import_map = "./functions/scrape-url/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/scrape-url/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/scrape-url/*.html" ]
