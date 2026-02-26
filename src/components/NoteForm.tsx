@@ -27,9 +27,9 @@ export function NoteForm({ onSubmit }: Props) {
     <div
       className="rounded-xl p-4 mb-6 transition-all duration-200"
       style={{
-        background: '#111318',
-        border: focused ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.06)',
-        boxShadow: focused ? '0 0 0 3px rgba(255,255,255,0.03)' : 'none'
+        background: 'rgba(79,156,249,0.03)',
+        border: focused ? '1px solid rgba(79,156,249,0.25)' : '1px solid rgba(79,156,249,0.08)',
+        boxShadow: focused ? '0 0 0 3px rgba(79,156,249,0.04)' : 'none',
       }}
     >
       <input
@@ -39,11 +39,12 @@ export function NoteForm({ onSubmit }: Props) {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder="Title"
-        className="w-full bg-transparent text-sm font-medium outline-none mb-3"
+        className="w-full bg-transparent outline-none mb-3"
         style={{
-          color: '#f0ede8',
-          fontFamily: 'Instrument Serif, serif',
+          color: '#e2e8f0',
+          fontFamily: "'Space Grotesk', system-ui, sans-serif",
           fontSize: '1rem',
+          fontWeight: 600,
         }}
       />
       <textarea
@@ -55,18 +56,21 @@ export function NoteForm({ onSubmit }: Props) {
         placeholder="Write a note, paste an article, dump your thoughts..."
         rows={4}
         className="w-full bg-transparent text-sm outline-none resize-none"
-        style={{ color: '#8a8a9a', lineHeight: '1.6' }}
+        style={{ color: '#64748b', lineHeight: '1.6', fontFamily: "'Inter', system-ui, sans-serif" }}
       />
-      <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <span className="text-xs" style={{ color: '#3a3a4a' }}>⌘ + Enter to save</span>
+      <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(79,156,249,0.08)' }}>
+        <span className="text-xs" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>⌘ + Enter to save</span>
         <button
           onClick={handleSubmit}
           disabled={!content.trim() || saving}
-          className="text-xs font-medium px-4 py-1.5 rounded-lg transition-all"
+          className="text-xs font-medium px-4 py-1.5 rounded-lg transition-all duration-200"
           style={{
-            background: content.trim() ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.05)',
-            color: content.trim() ? '#0f0f0f' : '#3a3a4a',
-            cursor: content.trim() ? 'pointer' : 'not-allowed'
+            background: content.trim() ? '#4f9cf9' : 'rgba(79,156,249,0.06)',
+            color: content.trim() ? '#080c14' : '#1e3a5f',
+            cursor: content.trim() ? 'pointer' : 'not-allowed',
+            fontFamily: "'Space Grotesk', system-ui, sans-serif",
+            fontWeight: 600,
+            boxShadow: content.trim() ? '0 0 16px rgba(79,156,249,0.3)' : 'none',
           }}
         >
           {saving ? 'Saving...' : 'Save'}

@@ -29,24 +29,27 @@ export function SpaceView({ space }: Props) {
       )}
 
       {/* Notes column */}
-      <div className="flex-1 overflow-y-auto" style={{ background: '#0f0f12' }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: '#080c14' }}>
         <div className="max-w-2xl mx-auto px-8 py-8">
           <div className="mb-8">
             <div className="flex items-start justify-between">
               <div>
                 <h2 style={{
-                  fontFamily: 'Instrument Serif, serif',
+                  fontFamily: "'Space Grotesk', system-ui, sans-serif",
                   fontSize: '2rem',
-                  color: '#f0ede8',
+                  fontWeight: 700,
+                  color: '#f1f5f9',
                   letterSpacing: '-0.02em',
-                  lineHeight: 1.2
+                  lineHeight: 1.2,
                 }}>
                   {space.name}
                 </h2>
                 {space.description && (
-                  <p className="text-sm mt-1.5" style={{ color: '#4a4a5a' }}>{space.description}</p>
+                  <p className="text-sm mt-1.5" style={{ color: '#475569', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                    {space.description}
+                  </p>
                 )}
-                <p className="text-xs mt-1" style={{ color: '#2a2a3a' }}>
+                <p className="text-xs mt-1" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>
                   {notes.length} {notes.length === 1 ? 'note' : 'notes'}
                 </p>
               </div>
@@ -54,19 +57,20 @@ export function SpaceView({ space }: Props) {
               {/* Import URL button */}
               <button
                 onClick={() => setShowUrlModal(true)}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#5a5a6a'
+                  background: 'rgba(79,156,249,0.06)',
+                  border: '1px solid rgba(79,156,249,0.15)',
+                  color: '#4f9cf9',
+                  fontFamily: "'Inter', system-ui, sans-serif",
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                  e.currentTarget.style.color = '#a0a0b0'
+                  e.currentTarget.style.background = 'rgba(79,156,249,0.12)'
+                  e.currentTarget.style.boxShadow = '0 0 16px rgba(79,156,249,0.15)'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                  e.currentTarget.style.color = '#5a5a6a'
+                  e.currentTarget.style.background = 'rgba(79,156,249,0.06)'
+                  e.currentTarget.style.boxShadow = 'none'
                 }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -81,9 +85,27 @@ export function SpaceView({ space }: Props) {
           <NoteForm onSubmit={createNote} />
 
           {loading ? (
-            <p className="text-sm" style={{ color: '#3a3a4a' }}>Loading...</p>
+            <div className="flex items-center gap-2 mt-4">
+              {[0,1,2].map(i => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: '#4f9cf9', opacity: 0.4, animation: `pulse 1s ease-in-out ${i * 0.2}s infinite` }}
+                />
+              ))}
+            </div>
           ) : notes.length === 0 ? (
-            <p className="text-sm" style={{ color: '#3a3a4a' }}>No notes yet. Add one above.</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(79,156,249,0.06)', border: '1px solid rgba(79,156,249,0.12)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <p className="text-sm" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                No notes yet. Add one above.
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
               {notes.map(note => (
@@ -95,7 +117,7 @@ export function SpaceView({ space }: Props) {
       </div>
 
       {/* Chat panel */}
-      <div className="w-96 flex flex-col" style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="w-96 flex flex-col" style={{ borderLeft: '1px solid rgba(79,156,249,0.08)' }}>
         <ChatPanel spaceId={space.id} />
       </div>
     </div>

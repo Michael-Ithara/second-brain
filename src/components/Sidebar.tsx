@@ -29,36 +29,39 @@ export function Sidebar({ selectedSpaceId, onSelectSpace }: Props) {
 
   return (
     <aside className="w-64 h-screen flex flex-col" style={{
-      background: 'linear-gradient(180deg, #0f0f0f 0%, #111318 100%)',
-      borderRight: '1px solid rgba(255,255,255,0.06)'
+      background: '#080c14',
+      borderRight: '1px solid rgba(79,156,249,0.08)',
     }}>
       {/* Header */}
-      <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <h1 style={{
-          fontFamily: 'Instrument Serif, serif',
-          fontSize: '1.25rem',
-          color: '#f0ede8',
-          letterSpacing: '-0.01em'
-        }}>
-          Second Brain
-        </h1>
-        <p className="text-xs mt-0.5 truncate" style={{ color: '#4a4a5a' }}>
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(79,156,249,0.06)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(79,156,249,0.15)', border: '1px solid rgba(79,156,249,0.3)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="2">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44l-3.5-13A2.5 2.5 0 0 1 5.97 2H9.5z"/>
+              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44l3.5-13A2.5 2.5 0 0 0 18.03 2H14.5z"/>
+            </svg>
+          </div>
+          <h1 style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: '0.95rem', fontWeight: 600, color: '#e2e8f0' }}>
+            Second Brain
+          </h1>
+        </div>
+        <p className="text-xs mt-2 truncate" style={{ color: '#334155', paddingLeft: '2.25rem' }}>
           {user?.email}
         </p>
       </div>
 
-      {/* Spaces list */}
+      {/* Spaces */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <div className="flex items-center justify-between mb-2 px-2">
-          <span className="text-xs font-medium tracking-widest uppercase" style={{ color: '#3a3a4a' }}>
+          <span className="text-xs font-medium tracking-widest uppercase" style={{ color: '#1e3a5f', letterSpacing: '0.12em' }}>
             Spaces
           </span>
           <button
             onClick={() => setIsCreating(true)}
             className="transition-colors rounded p-0.5"
-            style={{ color: '#3a3a4a' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a0a0b0')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#3a3a4a')}
+            style={{ color: '#1e3a5f' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#4f9cf9')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#1e3a5f')}
             title="New space"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -78,9 +81,10 @@ export function Sidebar({ selectedSpaceId, onSelectSpace }: Props) {
             placeholder="Space name..."
             className="w-full text-sm rounded-lg px-3 py-2 mb-1 outline-none"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#f0ede8'
+              background: 'rgba(79,156,249,0.06)',
+              border: '1px solid rgba(79,156,249,0.2)',
+              color: '#e2e8f0',
+              fontFamily: "'Inter', system-ui, sans-serif",
             }}
           />
         )}
@@ -91,19 +95,21 @@ export function Sidebar({ selectedSpaceId, onSelectSpace }: Props) {
             onClick={() => onSelectSpace(space)}
             className="w-full text-left px-3 py-2 rounded-lg text-sm transition-all group flex items-center justify-between mb-0.5"
             style={{
-              background: selectedSpaceId === space.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: selectedSpaceId === space.id ? '#f0ede8' : '#5a5a6a',
+              background: selectedSpaceId === space.id ? 'rgba(79,156,249,0.1)' : 'transparent',
+              color: selectedSpaceId === space.id ? '#4f9cf9' : '#475569',
+              border: selectedSpaceId === space.id ? '1px solid rgba(79,156,249,0.2)' : '1px solid transparent',
+              fontFamily: "'Inter', system-ui, sans-serif",
             }}
             onMouseEnter={e => {
               if (selectedSpaceId !== space.id) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                e.currentTarget.style.color = '#a0a0b0'
+                e.currentTarget.style.background = 'rgba(79,156,249,0.05)'
+                e.currentTarget.style.color = '#94a3b8'
               }
             }}
             onMouseLeave={e => {
               if (selectedSpaceId !== space.id) {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = '#5a5a6a'
+                e.currentTarget.style.color = '#475569'
               }
             }}
           >
@@ -111,9 +117,9 @@ export function Sidebar({ selectedSpaceId, onSelectSpace }: Props) {
             <span
               onClick={e => { e.stopPropagation(); deleteSpace(space.id) }}
               className="opacity-0 group-hover:opacity-100 text-xs ml-2 transition-opacity"
-              style={{ color: '#5a5a6a' }}
+              style={{ color: '#475569' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#5a5a6a')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
             >
               ✕
             </span>
@@ -121,20 +127,20 @@ export function Sidebar({ selectedSpaceId, onSelectSpace }: Props) {
         ))}
 
         {spaces.length === 0 && !isCreating && (
-          <p className="text-xs px-2 mt-2" style={{ color: '#3a3a4a' }}>
+          <p className="text-xs px-2 mt-2" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>
             No spaces yet. Hit + to create one.
           </p>
         )}
       </div>
 
       {/* Sign out */}
-      <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(79,156,249,0.06)' }}>
         <button
           onClick={() => supabase.auth.signOut()}
           className="text-xs transition-colors"
-          style={{ color: '#3a3a4a' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#6a6a7a')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#3a3a4a')}
+          style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#475569')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#1e3a5f')}
         >
           Sign out
         </button>

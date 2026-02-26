@@ -7,34 +7,40 @@ interface Props {
 
 export function NoteCard({ note, onDelete }: Props) {
   const formattedDate = new Date(note.created_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+    month: 'short', day: 'numeric', year: 'numeric',
   })
 
   return (
     <div
       className="rounded-xl p-4 group transition-all duration-150"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(79,156,249,0.02)',
+        border: '1px solid rgba(79,156,249,0.08)',
       }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)')}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(79,156,249,0.2)'
+        e.currentTarget.style.background = 'rgba(79,156,249,0.04)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'rgba(79,156,249,0.08)'
+        e.currentTarget.style.background = 'rgba(79,156,249,0.02)'
+      }}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {note.title && (
-            <h3 className="text-sm font-medium mb-1.5" style={{
-              color: '#f0ede8',
-              fontFamily: 'Instrument Serif, serif',
+            <h3 className="font-semibold mb-1.5" style={{
+              color: '#e2e8f0',
+              fontFamily: "'Space Grotesk', system-ui, sans-serif",
               fontSize: '0.95rem',
+              letterSpacing: '-0.01em',
             }}>
               {note.title}
             </h3>
           )}
           <p className="text-sm leading-relaxed" style={{
-            color: '#6a6a7a',
+            color: '#475569',
+            fontFamily: "'Inter', system-ui, sans-serif",
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
@@ -46,14 +52,16 @@ export function NoteCard({ note, onDelete }: Props) {
         <button
           onClick={() => onDelete(note.id)}
           className="opacity-0 group-hover:opacity-100 text-xs shrink-0 transition-all"
-          style={{ color: '#3a3a4a' }}
+          style={{ color: '#1e3a5f' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#3a3a4a')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#1e3a5f')}
         >
           ✕
         </button>
       </div>
-      <p className="text-xs mt-3" style={{ color: '#3a3a4a' }}>{formattedDate}</p>
+      <p className="text-xs mt-3" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {formattedDate}
+      </p>
     </div>
   )
 }
