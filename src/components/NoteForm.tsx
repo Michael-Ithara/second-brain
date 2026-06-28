@@ -23,13 +23,21 @@ export function NoteForm({ onSubmit }: Props) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSubmit()
   }
 
+  const hasContent = content.trim().length > 0
+
   return (
     <div
-      className="rounded-xl p-4 mb-6 transition-all duration-200"
+      className="rounded-xl p-4 mb-6 transition-all duration-300"
       style={{
-        background: 'rgba(79,156,249,0.03)',
-        border: focused ? '1px solid rgba(79,156,249,0.25)' : '1px solid rgba(79,156,249,0.08)',
-        boxShadow: focused ? '0 0 0 3px rgba(79,156,249,0.04)' : 'none',
+        background: focused
+          ? 'rgba(91,156,246,0.04)'
+          : 'rgba(255,255,255,0.02)',
+        border: focused
+          ? '1px solid rgba(91,156,246,0.3)'
+          : '1px solid rgba(91,156,246,0.08)',
+        boxShadow: focused
+          ? '0 0 0 3px rgba(91,156,246,0.06), 0 0 24px rgba(91,156,246,0.08)'
+          : 'none',
       }}
     >
       <input
@@ -41,10 +49,10 @@ export function NoteForm({ onSubmit }: Props) {
         placeholder="Title"
         className="w-full bg-transparent outline-none mb-3"
         style={{
-          color: '#e2e8f0',
-          fontFamily: "'Space Grotesk', system-ui, sans-serif",
+          color: '#ffffff',
           fontSize: '1rem',
           fontWeight: 600,
+          fontFamily: 'inherit',
         }}
       />
       <textarea
@@ -56,21 +64,41 @@ export function NoteForm({ onSubmit }: Props) {
         placeholder="Write a note, paste an article, dump your thoughts..."
         rows={4}
         className="w-full bg-transparent text-sm outline-none resize-none"
-        style={{ color: '#64748b', lineHeight: '1.6', fontFamily: "'Inter', system-ui, sans-serif" }}
+        style={{
+          color: '#94a3b8',
+          lineHeight: '1.65',
+          fontFamily: 'inherit',
+        }}
       />
-      <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(79,156,249,0.08)' }}>
-        <span className="text-xs" style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}>⌘ + Enter to save</span>
+      <div
+        className="flex items-center justify-between mt-3 pt-3"
+        style={{ borderTop: '1px solid rgba(91,156,246,0.08)' }}
+      >
+        <span className="text-xs" style={{ color: '#1e3a5f' }}>⌘ + Enter to save</span>
         <button
           onClick={handleSubmit}
-          disabled={!content.trim() || saving}
-          className="text-xs font-medium px-4 py-1.5 rounded-lg transition-all duration-200"
+          disabled={!hasContent || saving}
+          className="text-xs font-semibold px-4 py-1.5 rounded-lg transition-all duration-200"
           style={{
-            background: content.trim() ? '#4f9cf9' : 'rgba(79,156,249,0.06)',
-            color: content.trim() ? '#080c14' : '#1e3a5f',
-            cursor: content.trim() ? 'pointer' : 'not-allowed',
-            fontFamily: "'Space Grotesk', system-ui, sans-serif",
-            fontWeight: 600,
-            boxShadow: content.trim() ? '0 0 16px rgba(79,156,249,0.3)' : 'none',
+            background: hasContent ? '#5b9cf6' : 'rgba(91,156,246,0.06)',
+            color: hasContent ? '#080c14' : '#1e3a5f',
+            cursor: hasContent ? 'pointer' : 'not-allowed',
+            boxShadow: hasContent ? '0 0 20px rgba(91,156,246,0.4)' : 'none',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => {
+            if (hasContent) {
+              e.currentTarget.style.background = '#7ab3f8'
+              e.currentTarget.style.boxShadow = '0 0 28px rgba(91,156,246,0.6)'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+            }
+          }}
+          onMouseLeave={e => {
+            if (hasContent) {
+              e.currentTarget.style.background = '#5b9cf6'
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(91,156,246,0.4)'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }
           }}
         >
           {saving ? 'Saving...' : 'Save'}
