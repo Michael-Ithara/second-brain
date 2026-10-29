@@ -1,9 +1,69 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '../hooks/useChat'
+import type { Source } from '../hooks/useChat'
 
 interface Props {
   spaceId: string
+}
+
+function SourceList({ sources }: { sources: Source[] }) {
+  const [openId, setOpenId] = useState<string | null>(null)
+
+  if (sources.length === 0) {
+    return (
+      <p className="text-xs mt-1" style={{ color: '#94a3b8', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        No matching notes. This answer isn't based on your notes.
+      </p>
+    )
+  }
+
+  const open = sources.find(s => s.id === openId)
+
+  return (
+    <div className="mt-1">
+      <p className="text-xs mb-1.5" style={{ color: '#94a3b8', fontFamily: "'Inter', system-ui, sans-serif" }}>
+        Sources
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((source, i) => (
+          <button
+            key={source.id}
+            onClick={() => setOpenId(openId === source.id ? null : source.id)}
+            aria-expanded={openId === source.id}
+            className="flex items-center gap-1.5 text-xs rounded-md px-2 py-1 max-w-full transition-colors hover:bg-[rgba(79,156,249,0.12)] focus-visible:outline-2 focus-visible:outline-[#4f9cf9]"
+            style={{
+              background: openId === source.id ? 'rgba(79,156,249,0.12)' : 'rgba(79,156,249,0.05)',
+              border: '1px solid rgba(79,156,249,0.2)',
+              color: '#cbd5e1',
+              fontFamily: "'Inter', system-ui, sans-serif",
+            }}
+          >
+            <span style={{ color: '#4f9cf9' }}>{i + 1}</span>
+            <span className="truncate">{source.title || 'Untitled note'}</span>
+            <span style={{ color: '#94a3b8' }}>{Math.round(source.similarity * 100)}%</span>
+          </button>
+        ))}
+      </div>
+      {open && (
+        <p
+          className="text-xs leading-relaxed mt-2 rounded-lg px-3 py-2"
+          style={{
+            background: 'rgba(79,156,249,0.04)',
+            border: '1px solid rgba(79,156,249,0.1)',
+            color: '#94a3b8',
+            fontFamily: "'Inter', system-ui, sans-serif",
+            display: '-webkit-box',
+            WebkitLineClamp: 6,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {open.content}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function ChatPanel({ spaceId }: Props) {
@@ -116,6 +176,7 @@ export function ChatPanel({ spaceId }: Props) {
               }}
             >
               {msg.role === 'assistant' ? (
+                <>
                 <ReactMarkdown
                   components={{
                     p: ({ children }) => (
@@ -149,6 +210,8 @@ export function ChatPanel({ spaceId }: Props) {
                 >
                   {msg.content}
                 </ReactMarkdown>
+                {msg.sources && <SourceList sources={msg.sources} />}
+                </>
               ) : (
                 msg.content
               )}

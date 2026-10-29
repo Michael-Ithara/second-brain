@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import { invokeFunction } from '../lib/supabase'
 
-interface Message {
+export interface Source {
+  id: string
+  title: string
+  content: string
+  similarity: number
+}
+
+export interface Message {
   role: 'user' | 'assistant'
   content: string
+  // Notes retrieved for this answer. Undefined for user messages and errors.
+  sources?: Source[]
 }
 
 interface ChatResponse {
   answer: string
-  sources: { id: string; title: string; content: string; similarity: number }[]
+  sources: Source[] | null
 }
 
 export function useChat(spaceId: string) {
@@ -21,13 +30,13 @@ export function useChat(spaceId: string) {
     setLoading(true)
 
     try {
-      const { answer } = await invokeFunction<ChatResponse>('chat', {
+      const { answer, sources } = await invokeFunction<ChatResponse>('chat', {
         question,
         spaceId,
       })
 
-      setMessages(prev => [...prev, { role: 'assistant', content: answer }])
-    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: answer, sources: sources ?? [] }])
+    } catch {
       setMessages(prev => [
         ...prev,
         { role: 'assistant', content: 'Something went wrong. Please try again.' },

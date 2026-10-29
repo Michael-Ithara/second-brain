@@ -25,8 +25,6 @@ export async function invokeFunction<T>(
     throw new Error('No active session')
   }
 
-  console.log('Invoking function with token:', session.access_token.slice(0, 20) + '...')
-
   const { data, error } = await supabase.functions.invoke(name, {
     body,
     headers: {

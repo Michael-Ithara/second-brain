@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { adminClient, requireUser } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,20 +7,15 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  console.log('=== embed-note called ===')
-  console.log('Method:', req.method)
-
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   let body
   try {
-    const text = await req.text()
-    console.log('Raw body:', text)
-    body = JSON.parse(text)
+    body = await req.json()
   } catch (e) {
-    console.log('Body parse error:', e.message)
+    console.log('Body parse error:', (e as Error).message)
     return new Response(
       JSON.stringify({ error: 'Invalid request body' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -28,19 +23,43 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { noteId, content } = body
-    console.log('noteId:', noteId)
-    console.log('content:', content)
+    const { noteId } = body
 
-    if (!noteId || !content) {
-      console.log('Missing noteId or content')
+    if (!noteId) {
       return new Response(
-        JSON.stringify({ error: 'noteId and content are required' }),
+        JSON.stringify({ error: 'noteId is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Calling Voyage AI...')
+    const supabase = adminClient()
+    const userId = await requireUser(req, supabase)
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Read the note ourselves, scoped to the caller, instead of trusting
+    // content from the request — otherwise anyone could overwrite any
+    // note's embedding with text of their choosing.
+    const { data: note } = await supabase
+      .from('notes')
+      .select('title, content')
+      .eq('id', noteId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!note) {
+      return new Response(
+        JSON.stringify({ error: 'Note not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const content = `${note.title ? note.title + '\n' : ''}${note.content}`
+
     const voyageResponse = await fetch('https://api.voyageai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -54,43 +73,31 @@ Deno.serve(async (req) => {
       }),
     })
 
-    console.log('Voyage response status:', voyageResponse.status)
     const voyageData = await voyageResponse.json()
-    console.log('Voyage response body:', JSON.stringify(voyageData))
 
     if (!voyageResponse.ok) {
-      throw new Error(`Voyage API error: ${JSON.stringify(voyageData)}`)
+      throw new Error(`Voyage API error: ${voyageResponse.status}`)
     }
 
     const embedding = voyageData.data[0].embedding
-    console.log('Embedding length:', embedding.length)
-
-    console.log('Saving embedding to Supabase...')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     const { error } = await supabase
       .from('notes')
       .update({ embedding })
       .eq('id', noteId)
+      .eq('user_id', userId)
 
-    if (error) {
-      console.log('Supabase update error:', JSON.stringify(error))
-      throw error
-    }
+    if (error) throw error
 
-    console.log('Success!')
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (err) {
-    console.log('ERROR:', err.message)
+    console.log('ERROR:', (err as Error).message)
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

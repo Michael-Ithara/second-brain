@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { adminClient, requireUser } from '../_shared/auth.ts'
 import Anthropic from 'npm:@anthropic-ai/sdk'
 
 const corsHeaders = {
@@ -13,14 +13,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const text = await req.text()
-    console.log('Raw body:', text)
-    const { question, spaceId } = JSON.parse(text)
+    const { question, spaceId } = await req.json()
 
     if (!question || !spaceId) {
       return new Response(
         JSON.stringify({ error: 'question and spaceId are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Step 0 — Make sure the caller owns this space. The service-role client
+    // skips RLS, so without this any signed-in user could query any space.
+    const supabase = adminClient()
+    const userId = await requireUser(req, supabase)
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: space } = await supabase
+      .from('spaces')
+      .select('id')
+      .eq('id', spaceId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!space) {
+      return new Response(
+        JSON.stringify({ error: 'Space not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -51,11 +74,6 @@ Deno.serve(async (req) => {
 
     // Step 2 — Find similar notes
     console.log('Searching similar notes...')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
     const { data: similarNotes, error: searchError } = await supabase.rpc('match_notes', {
       query_embedding: questionEmbedding,
       match_space_id: spaceId,
@@ -109,10 +127,9 @@ Always cite which source(s) you used in your answer.`,
     )
 
   } catch (err) {
-    console.log('ERROR:', err.message)
-    console.log('STACK:', err.stack)
+    console.log('ERROR:', (err as Error).message)
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

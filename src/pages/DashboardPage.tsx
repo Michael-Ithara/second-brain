@@ -15,7 +15,8 @@ export function DashboardPage() {
 
       <main className="flex-1 overflow-y-auto">
         {selectedSpace ? (
-          <SpaceView space={selectedSpace} />
+          // key remounts per space so chat history and drafts don't carry over
+          <SpaceView key={selectedSpace.id} space={selectedSpace} />
         ) : (
           <div className="h-full flex items-center justify-center">
             <p className="text-gray-600">Select a space or create a new one</p>
