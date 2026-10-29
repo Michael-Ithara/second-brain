@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { Space } from '../types'
@@ -16,17 +16,39 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
   const { user } = useAuth()
   const [isCreating, setIsCreating] = useState(false)
   const [newSpaceName, setNewSpaceName] = useState('')
+  // Escape closes the field, which also blurs it; this stops that blur from creating the space.
+  const cancelled = useRef(false)
+
+  // Enter creates, then the field closes and blurs — the guard stops that blur creating it twice.
+  const creating = useRef(false)
 
   const handleCreateSpace = async () => {
-    if (!newSpaceName.trim()) return
-    await onCreateSpace(newSpaceName.trim())
+    const name = newSpaceName.trim()
+    if (!name || creating.current) return
+    creating.current = true
     setNewSpaceName('')
     setIsCreating(false)
+    await onCreateSpace(name)
+    creating.current = false
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleCreateSpace()
-    if (e.key === 'Escape') setIsCreating(false)
+    if (e.key === 'Escape') {
+      cancelled.current = true
+      setNewSpaceName('')
+      setIsCreating(false)
+    }
+  }
+
+  // Like naming a new folder in Finder: clicking away keeps the name.
+  const handleBlur = () => {
+    if (cancelled.current) {
+      cancelled.current = false
+      return
+    }
+    if (newSpaceName.trim()) handleCreateSpace()
+    else setIsCreating(false)
   }
 
   return (
@@ -69,7 +91,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
             value={newSpaceName}
             onChange={e => setNewSpaceName(e.target.value)}
             onKeyDown={handleKeyDown}
-            onBlur={() => setIsCreating(false)}
+            onBlur={handleBlur}
             placeholder="Space name..."
             aria-label="New space name"
             className="w-full text-sm rounded-lg px-3 py-2 mb-1 bg-surface border border-field text-ink placeholder:text-ink-3 focus:border-ring focus-visible:outline-none"

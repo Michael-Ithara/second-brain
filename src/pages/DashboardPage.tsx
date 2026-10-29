@@ -1,27 +1,61 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { SpaceView } from '../components/SpaceView'
 import { SpacesDrawer } from '../components/SpacesDrawer'
 import { useSpaces } from '../hooks/useSpaces'
 import type { Space } from '../types' //always import types with "import type" to avoid accidentally importing values and causing circular dependencies
 
+// Last-opened space, per browser. A convenience only, so storage errors
+// (private mode, blocked storage) just mean we start on the empty view.
+const LAST_SPACE_KEY = 'second-brain:last-space'
+function readLastSpace() {
+  try { return localStorage.getItem(LAST_SPACE_KEY) } catch { return null }
+}
+function writeLastSpace(id: string) {
+  try { localStorage.setItem(LAST_SPACE_KEY, id) } catch { /* ignore */ }
+}
+
 export function DashboardPage() {
   // Lifted here so the desktop sidebar and the mobile drawer share one list.
-  const { spaces, createSpace, deleteSpace } = useSpaces()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { spaces, loading, createSpace, deleteSpace } = useSpaces()
+  // The open space lives in the URL (/app/:spaceId), so refresh, Back/Forward
+  // and shared links all work.
+  const { spaceId } = useParams()
+  const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Derived from the list, so deleting the open space also closes it.
-  const selectedSpace = spaces.find(s => s.id === selectedId) ?? null
+  const selectedSpace = spaces.find(s => s.id === spaceId) ?? null
+
+  useEffect(() => {
+    document.title = selectedSpace ? `${selectedSpace.name} · Second Brain` : 'Second Brain'
+    if (selectedSpace) writeLastSpace(selectedSpace.id)
+  }, [selectedSpace])
+
+  const openSpace = (id: string) => navigate(`/app/${id}`)
 
   const renderSidebar = (onPicked?: () => void) => (
     <Sidebar
       spaces={spaces}
       selectedSpaceId={selectedSpace?.id ?? null}
-      onSelectSpace={(space: Space) => { setSelectedId(space.id); onPicked?.() }}
-      onCreateSpace={createSpace}
+      onSelectSpace={(space: Space) => { openSpace(space.id); onPicked?.() }}
+      onCreateSpace={async name => {
+        const space = await createSpace(name)
+        if (space) { openSpace(space.id); onPicked?.() }
+      }}
       onDeleteSpace={deleteSpace}
     />
   )
+
+  if (!loading) {
+    // /app on its own: reopen the space you were last in.
+    if (!spaceId) {
+      const last = readLastSpace()
+      if (last && spaces.some(s => s.id === last)) return <Navigate to={`/app/${last}`} replace />
+    }
+    // Unknown or just-deleted space: fall back to the plain /app view.
+    else if (!selectedSpace) return <Navigate to="/app" replace />
+  }
 
   return (
     <div className="flex h-dvh bg-canvas">

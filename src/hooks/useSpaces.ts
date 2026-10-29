@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Space } from '../types'
 import { useAuth } from './useAuth'
+import { useToast } from '../lib/toast'
+import { cancelDeferred, defer } from '../lib/deferred'
 
 export function useSpaces() {
   const { user } = useAuth()
+  const toast = useToast()
   const [spaces, setSpaces] = useState<Space[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -25,8 +28,9 @@ export function useSpaces() {
     return () => { cancelled = true }
   }, [user])
 
-  const createSpace = async (name: string, description?: string) => {
-    if (!user) return
+  // Returns the new space (so the caller can open it), or null after telling the user.
+  const createSpace = async (name: string, description?: string): Promise<Space | null> => {
+    if (!user) return null
 
     const { data, error } = await supabase
       .from('spaces')
@@ -34,16 +38,50 @@ export function useSpaces() {
       .select()
       .single()
 
-    if (!error && data) setSpaces(prev => [...prev, data])
+    if (error || !data) {
+      toast({ tone: 'error', message: `Couldn’t create “${name}”. Try again.` })
+      return null
+    }
+    setSpaces(prev => [...prev, data])
+    return data
   }
 
-  const deleteSpace = async (id: string) => {
-    const { error } = await supabase
-      .from('spaces')
-      .delete()
-      .eq('id', id)
+  // Hide now, delete in a few seconds unless undone. Deleting a space also
+  // deletes its notes, so this matters even more than for a single note.
+  const deleteSpace = (id: string) => {
+    const index = spaces.findIndex(s => s.id === id)
+    const space = spaces[index]
+    if (!space) return
+    const key = `space:${id}`
 
-    if (!error) setSpaces(prev => prev.filter(s => s.id !== id))
+    const restore = () =>
+      setSpaces(prev => {
+        if (prev.some(s => s.id === id)) return prev
+        const next = [...prev]
+        next.splice(Math.min(index, next.length), 0, space)
+        return next
+      })
+
+    setSpaces(prev => prev.filter(s => s.id !== id))
+
+    defer(key, async () => {
+      const { error } = await supabase.from('spaces').delete().eq('id', id)
+      if (error) {
+        restore()
+        toast({ tone: 'error', message: `Couldn’t delete “${space.name}”. It’s back in the list.` })
+      }
+    })
+
+    toast({
+      message: `Deleted space “${space.name}” and its notes`,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (cancelDeferred(key)) restore()
+          else toast({ message: 'Too late to undo — it was already deleted.' })
+        },
+      },
+    })
   }
 
   return { spaces, loading, createSpace, deleteSpace }
