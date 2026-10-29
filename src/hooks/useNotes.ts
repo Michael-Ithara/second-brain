@@ -2,12 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase, invokeFunction } from '../lib/supabase'
 import type { Note, EmbedStatus } from '../types'
 import { useAuth } from './useAuth'
+import { useToast } from '../lib/toast'
+import { cancelDeferred, defer } from '../lib/deferred'
 
 // Everything except `embedding` — the vector is large and the UI never needs it.
 const NOTE_COLUMNS = 'id, space_id, user_id, title, content, source_url, created_at, updated_at'
 
 export function useNotes(spaceId: string | null) {
   const { user } = useAuth()
+  const toast = useToast()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(false)
   // Only notes that aren't searchable yet have an entry; absent means 'ready'.
@@ -66,8 +69,9 @@ export function useNotes(spaceId: string | null) {
     for (const id of ids) await embed(id)
   }
 
+  // Throws on failure so the form (or import dialog) can keep the text and say so.
   const createNote = async (title: string, content: string, sourceUrl?: string) => {
-    if (!user || !spaceId) return
+    if (!user || !spaceId) throw new Error('Not signed in')
 
     const { data, error } = await supabase
       .from('notes')
@@ -81,7 +85,7 @@ export function useNotes(spaceId: string | null) {
       .select(NOTE_COLUMNS)
       .single()
 
-    if (error || !data) return
+    if (error || !data) throw new Error(error?.message ?? 'Could not save the note')
 
     setNotes(prev => [data, ...prev])
     embed(data.id)
@@ -108,16 +112,45 @@ export function useNotes(spaceId: string | null) {
     embed(id)
   }
 
-  const deleteNote = async (id: string) => {
-    const { error } = await supabase
-      .from('notes')
-      .delete()
-      .eq('id', id)
+  // Hide now, delete in a few seconds unless undone (see lib/deferred).
+  const deleteNote = (id: string) => {
+    const index = notes.findIndex(n => n.id === id)
+    const note = notes[index]
+    if (!note) return
+    const status = embedStatus[id]
+    const key = `note:${id}`
 
-    if (!error) {
-      setNotes(prev => prev.filter(n => n.id !== id))
-      setStatus(id, null)
+    const restore = () => {
+      setNotes(prev => {
+        if (prev.some(n => n.id === id)) return prev
+        const next = [...prev]
+        next.splice(Math.min(index, next.length), 0, note)
+        return next
+      })
+      if (status) setStatus(id, status)
     }
+
+    setNotes(prev => prev.filter(n => n.id !== id))
+    setStatus(id, null)
+
+    defer(key, async () => {
+      const { error } = await supabase.from('notes').delete().eq('id', id)
+      if (error) {
+        restore()
+        toast({ tone: 'error', message: `Couldn’t delete “${note.title || 'Untitled note'}”. It’s back in the list.` })
+      }
+    })
+
+    toast({
+      message: `Deleted “${note.title || 'Untitled note'}”`,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (cancelDeferred(key)) restore()
+          else toast({ message: 'Too late to undo — it was already deleted.' })
+        },
+      },
+    })
   }
 
   return { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding: embed, indexMissing }

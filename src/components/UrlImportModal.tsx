@@ -48,8 +48,14 @@ export function UrlImportModal({ onImport, onClose }: Props) {
   const handleImport = async () => {
     if (!preview) return
     setLoading(true)
-    await onImport(preview.title, preview.content, preview.url)
-    onClose()
+    setError(null)
+    try {
+      await onImport(preview.title, preview.content, preview.url)
+      onClose()
+    } catch {
+      setError('Couldn’t save this as a note. Try again.')
+      setLoading(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

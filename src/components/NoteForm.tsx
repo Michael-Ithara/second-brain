@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { modKey } from '../lib/platform'
+import { useToast } from '../lib/toast'
 
 interface Props {
   onSubmit: (title: string, content: string) => Promise<void>
@@ -9,14 +10,21 @@ export function NoteForm({ onSubmit }: Props) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
 
   const handleSubmit = async () => {
     if (!content.trim()) return
     setSaving(true)
-    await onSubmit(title.trim(), content.trim())
-    setTitle('')
-    setContent('')
-    setSaving(false)
+    try {
+      await onSubmit(title.trim(), content.trim())
+      setTitle('')
+      setContent('')
+    } catch {
+      // Keep what they wrote; losing a note to a network blip is the worst outcome.
+      toast({ tone: 'error', message: 'Couldn’t save the note. Your text is still here — try again.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
