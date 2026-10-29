@@ -47,10 +47,8 @@ export function useNotes(spaceId: string | null) {
 
    setNotes(prev => [data, ...prev])
 
-   invokeFunction('embed-note', {
-    noteId: data.id,
-    content: `${title ? title + '\n' : ''}${content}`,
-   }).catch(err => console.error('Embedding failed:', err))
+   invokeFunction('embed-note', { noteId: data.id })
+    .catch(err => console.error('Embedding failed:', err))
  }
 
   const deleteNote = async (id: string) => {
