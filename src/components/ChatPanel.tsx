@@ -7,9 +7,10 @@ import { modKey } from '../lib/platform'
 
 interface Props {
   spaceId: string
+  onOpenNote: (id: string) => void
 }
 
-function SourceList({ sources }: { sources: Source[] }) {
+function SourceList({ sources, onOpenNote }: { sources: Source[]; onOpenNote: (id: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null)
 
   if (sources.length === 0) {
@@ -44,15 +45,23 @@ function SourceList({ sources }: { sources: Source[] }) {
         ))}
       </div>
       {open && (
-        <p className="text-xs leading-relaxed mt-2 rounded-lg px-3 py-2 line-clamp-6 text-ink-2 bg-[rgba(79,156,249,0.04)] border border-[rgba(79,156,249,0.1)]">
-          {open.content}
-        </p>
+        <div className="mt-2 rounded-lg px-3 py-2 bg-[rgba(79,156,249,0.04)] border border-[rgba(79,156,249,0.1)]">
+          <p className="text-xs leading-relaxed line-clamp-6 text-ink-2">
+            {open.content}
+          </p>
+          <button
+            onClick={() => onOpenNote(open.id)}
+            className="text-xs mt-1.5 rounded text-accent hover:text-accent-hover hover:underline"
+          >
+            Open note
+          </button>
+        </div>
       )}
     </div>
   )
 }
 
-export function ChatPanel({ spaceId }: Props) {
+export function ChatPanel({ spaceId, onOpenNote }: Props) {
   const { messages, loading, sendMessage, clearMessages } = useChat(spaceId)
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -162,7 +171,7 @@ export function ChatPanel({ spaceId }: Props) {
                 >
                   {msg.content}
                 </ReactMarkdown>
-                {msg.sources && <SourceList sources={msg.sources} />}
+                {msg.sources && <SourceList sources={msg.sources} onOpenNote={onOpenNote} />}
                 </>
               ) : (
                 msg.content

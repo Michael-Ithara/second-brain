@@ -23,3 +23,7 @@ export interface Note {
     created_at: string;
     updated_at: string;
 }
+
+// Whether a note can be found by chat search yet.
+// 'embedding' = request in flight, 'missing' = no vector stored (failed or never ran).
+export type EmbedStatus = 'embedding' | 'missing'
