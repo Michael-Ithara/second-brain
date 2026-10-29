@@ -5,14 +5,17 @@ import { NoteForm } from './NoteForm'
 import { NoteCard } from './NoteCard'
 import { ChatPanel } from './ChatPanel'
 import { UrlImportModal } from './UrlImportModal'
+import { NoteDialog } from './NoteDialog'
 
 interface Props {
   space: Space
 }
 
 export function SpaceView({ space }: Props) {
-  const { notes, loading, createNote, deleteNote } = useNotes(space.id)
+  const { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding } = useNotes(space.id)
   const [showUrlModal, setShowUrlModal] = useState(false)
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null)
+  const openNote = notes.find(n => n.id === openNoteId)
 
   const handleUrlImport = async (title: string, content: string, sourceUrl: string) => {
     await createNote(title, content, sourceUrl)
@@ -25,6 +28,17 @@ export function SpaceView({ space }: Props) {
         <UrlImportModal
           onImport={handleUrlImport}
           onClose={() => setShowUrlModal(false)}
+        />
+      )}
+
+      {openNote && (
+        <NoteDialog
+          key={openNote.id}
+          note={openNote}
+          status={embedStatus[openNote.id]}
+          onSave={(title, content) => updateNote(openNote.id, title, content)}
+          onRetry={() => retryEmbedding(openNote.id)}
+          onClose={() => setOpenNoteId(null)}
         />
       )}
 
@@ -89,7 +103,14 @@ export function SpaceView({ space }: Props) {
           ) : (
             <div className="flex flex-col gap-3">
               {notes.map(note => (
-                <NoteCard key={note.id} note={note} onDelete={deleteNote} />
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  status={embedStatus[note.id]}
+                  onOpen={setOpenNoteId}
+                  onDelete={deleteNote}
+                  onRetry={retryEmbedding}
+                />
               ))}
             </div>
           )}
@@ -98,7 +119,7 @@ export function SpaceView({ space }: Props) {
 
       {/* Chat panel */}
       <div className="w-96 flex flex-col border-l border-[rgba(79,156,249,0.08)]">
-        <ChatPanel spaceId={space.id} />
+        <ChatPanel spaceId={space.id} onOpenNote={setOpenNoteId} />
       </div>
     </div>
   )
