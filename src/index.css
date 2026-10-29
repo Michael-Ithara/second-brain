@@ -1,76 +1,79 @@
 @import "tailwindcss";
 
-/* Colour tokens.
-   Raw values live in plain custom properties so a subtree can switch scheme
-   (.scheme-dark below); @theme inline maps them to Tailwind utilities that
-   read the variable where they're used, not where it was first defined.
-   Contrast ratios are against canvas. Text tokens clear WCAG 4.5:1; `field`
-   clears 3:1 for control borders. */
-:root {
+/* Colour tokens — cobalt × lime on near-black.
+
+   Roles (keep them strict, or lime stops meaning anything):
+   - accent (lime)  the one action colour: primary buttons, AI activity, sources.
+                    Fill only in light mode: lime on white is 1.1:1.
+   - brand (cobalt) identity and structure: brand mark, selected space, your own
+                    chat messages, landing glows.
+   - accent-ink     accent-coloured text and icons: lime in dark, cobalt in light.
+   - ring           focus indicator: lime in dark, cobalt in light.
+
+   Raw values are plain custom properties so a subtree can switch scheme
+   (.scheme-dark); @theme inline maps them to utilities that read the variable
+   where they're used. Contrast ratios are against canvas: text tokens clear
+   WCAG 4.5:1, `field` clears 3:1 for control borders. */
+
+:root,
+.scheme-dark {
   color-scheme: dark;
-  --canvas: #080c14;
-  --surface: #0e1420;
-  --ink: #e2e8f0;          /* 15.9:1 — primary text */
-  --ink-2: #94a3b8;        /*  7.6:1 — secondary text */
-  --ink-3: #7b8aa0;        /*  5.6:1 — tertiary text, hints, metadata */
-  --accent: #4f9cf9;       /*  7.0:1 */
-  --accent-hover: #6baeff;
-  --on-accent: #080c14;    /*  7.0:1 on accent — text on filled buttons */
-  --danger: #f87171;       /*  7.1:1 */
-  --field: #516789;        /*  3.4:1 — input and control borders */
-  --tint: rgba(79, 156, 249, 0.05);    /* resting fill: cards, fields, quiet buttons */
-  --tint-2: rgba(79, 156, 249, 0.12);  /* hover / selected fill */
-  --line: rgba(79, 156, 249, 0.08);    /* dividers, resting card borders */
-  --line-2: rgba(79, 156, 249, 0.22);  /* hover / selected borders */
-  --danger-tint: rgba(248, 113, 113, 0.08);
-  --danger-line: rgba(248, 113, 113, 0.25);
-  --shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --canvas: #05060a;
+  --surface: #0d0f15;
+  --ink: #f2f4f8;            /* 18.4:1 */
+  --ink-2: #a4acba;          /*  8.9:1 */
+  --ink-3: #868fa0;          /*  6.2:1 */
+  --field: #5d6779;          /*  3.6:1 */
+  --accent: #c8ff3d;         /* 17.2:1 — lime */
+  --accent-hover: #d8ff73;
+  --on-accent: #05060a;      /* 17.2:1 on lime */
+  --accent-ink: #c8ff3d;
+  --accent-ink-hover: #e2ff9a;
+  --accent-edge: 0 0 0 0 transparent;
+  --brand: #2457ff;          /* cobalt — fills and large type only (3.7:1) */
+  --on-brand: #ffffff;       /*  5.4:1 on cobalt */
+  --brand-ink: #7d9bff;      /*  7.7:1 — cobalt as text */
+  --ring: #c8ff3d;
+  --danger: #ff6b6b;         /*  7.3:1 */
+  --tint: rgba(36, 87, 255, 0.07);
+  --tint-2: rgba(36, 87, 255, 0.16);
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(125, 155, 255, 0.35);
+  --danger-tint: rgba(255, 107, 107, 0.08);
+  --danger-line: rgba(255, 107, 107, 0.3);
+  --shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
 }
 
-/* The app follows the system appearance. */
+/* The app follows the system appearance; the landing page opts out with .scheme-dark. */
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --canvas: #f5f7fa;
+    --canvas: #f4f5f7;
     --surface: #ffffff;
-    --ink: #0f172a;          /* 16.6:1 */
-    --ink-2: #475569;        /*  7.1:1 */
-    --ink-3: #5b6779;        /*  5.3:1 */
-    --accent: #1a5fd0;       /*  5.5:1 */
-    --accent-hover: #144fb0;
-    --on-accent: #ffffff;    /*  5.9:1 on accent */
-    --danger: #c0262d;       /*  5.5:1 */
-    --field: #7a879b;        /*  3.3:1 */
-    --tint: rgba(26, 95, 208, 0.05);
-    --tint-2: rgba(26, 95, 208, 0.1);
-    --line: rgba(15, 23, 42, 0.09);
-    --line-2: rgba(26, 95, 208, 0.3);
-    --danger-tint: rgba(192, 38, 45, 0.07);
-    --danger-line: rgba(192, 38, 45, 0.3);
-    --shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+    --ink: #0a0c10;          /* 17.9:1 */
+    --ink-2: #4a5160;        /*  7.3:1 */
+    --ink-3: #5d6473;        /*  5.4:1 */
+    --field: #7c8392;        /*  3.5:1 */
+    --accent: #c8ff3d;
+    --accent-hover: #b9f522;
+    --on-accent: #0a0c10;
+    --accent-ink: #1f4fe6;   /*  5.8:1 */
+    --accent-ink-hover: #1740c2;
+    /* Lime barely separates from white, so filled buttons get a hairline edge. */
+    --accent-edge: inset 0 0 0 1px rgba(10, 12, 16, 0.14);
+    --brand: #2457ff;        /*  5.0:1 */
+    --on-brand: #ffffff;
+    --brand-ink: #1f4fe6;
+    --ring: #2457ff;
+    --danger: #c62828;       /*  5.2:1 */
+    --tint: rgba(36, 87, 255, 0.05);
+    --tint-2: rgba(36, 87, 255, 0.1);
+    --line: rgba(10, 12, 16, 0.09);
+    --line-2: rgba(36, 87, 255, 0.35);
+    --danger-tint: rgba(198, 40, 40, 0.07);
+    --danger-line: rgba(198, 40, 40, 0.3);
+    --shadow: 0 24px 64px rgba(10, 12, 16, 0.18);
   }
-}
-
-/* Always dark, whatever the system says — the landing page's art is drawn for it. */
-.scheme-dark {
-  color-scheme: dark;
-  --canvas: #080c14;
-  --surface: #0e1420;
-  --ink: #e2e8f0;
-  --ink-2: #94a3b8;
-  --ink-3: #7b8aa0;
-  --accent: #4f9cf9;
-  --accent-hover: #6baeff;
-  --on-accent: #080c14;
-  --danger: #f87171;
-  --field: #516789;
-  --tint: rgba(79, 156, 249, 0.05);
-  --tint-2: rgba(79, 156, 249, 0.12);
-  --line: rgba(79, 156, 249, 0.08);
-  --line-2: rgba(79, 156, 249, 0.22);
-  --danger-tint: rgba(248, 113, 113, 0.08);
-  --danger-line: rgba(248, 113, 113, 0.25);
-  --shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -79,11 +82,17 @@
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  --color-field: var(--field);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-ink-hover: var(--accent-ink-hover);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-ring: var(--ring);
   --color-danger: var(--danger);
-  --color-field: var(--field);
   --color-tint: var(--tint);
   --color-tint-2: var(--tint-2);
   --color-line: var(--line);
@@ -91,11 +100,13 @@
   --color-danger-tint: var(--danger-tint);
   --color-danger-line: var(--danger-line);
   --shadow-dialog: var(--shadow);
+  --shadow-edge: var(--accent-edge);
 }
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  /* Heavy grotesk for display type. Variable: wght 600–800, opsz 12–96. */
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
 }
 
 * {
@@ -116,8 +127,13 @@ body {
 
 /* One focus ring for every interactive element reached by keyboard. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* iOS Safari zooms the page when a field under 16px gets focus. */

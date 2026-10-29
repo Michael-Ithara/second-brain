@@ -105,7 +105,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
               onKeyDown={handleKeyDown}
               placeholder="Title"
               aria-label="Note title"
-              className="flex-1 min-w-0 bg-transparent font-display text-lg font-semibold text-ink placeholder:text-ink-3 rounded-md -mx-1.5 px-1.5 py-0.5 border border-field focus:border-accent focus-visible:outline-none"
+              className="flex-1 min-w-0 bg-transparent font-display text-lg font-semibold text-ink placeholder:text-ink-3 rounded-md -mx-1.5 px-1.5 py-0.5 border border-field focus:border-ring focus-visible:outline-none"
             />
           ) : (
             <h2 id="note-dialog-title" className={`flex-1 min-w-0 font-display text-lg font-semibold py-0.5 ${note.title ? 'text-ink' : 'text-ink-3'}`}>
@@ -137,7 +137,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'note-dialog-error' : undefined}
               rows={14}
-              className="w-full bg-transparent text-sm leading-relaxed resize-y text-ink rounded-lg p-3 border border-field focus:border-accent focus-visible:outline-none"
+              className="w-full bg-transparent text-sm leading-relaxed resize-y text-ink rounded-lg p-3 border border-field focus:border-ring focus-visible:outline-none"
             />
           ) : (
             <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap wrap-break-word">
@@ -165,7 +165,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
                     href={note.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="truncate max-w-[16rem] rounded text-accent hover:text-accent-hover hover:underline"
+                    className="truncate max-w-[16rem] rounded text-accent-ink hover:text-accent-ink-hover hover:underline"
                   >
                     {hostOf(note.source_url)}
                     <span className="sr-only"> (opens in a new tab)</span>
@@ -188,7 +188,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={!content.trim() || saving}
-                  className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
+                  className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent shadow-edge hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -196,7 +196,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
             ) : (
               <button
                 onClick={startEditing}
-                className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors text-accent bg-tint border border-line-2 hover:bg-tint-2"
+                className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors text-accent-ink bg-tint border border-line-2 hover:bg-tint-2"
               >
                 Edit
               </button>

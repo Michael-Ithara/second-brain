@@ -35,7 +35,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
       <div className="px-5 py-5 border-b border-line">
         <div className="flex items-center gap-2">
           <BrandMark />
-          <h1 className="font-display text-[0.95rem] font-semibold text-ink">
+          <h1 className="font-display text-base font-bold tracking-tight text-ink">
             Second Brain
           </h1>
         </div>
@@ -54,7 +54,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
             onClick={() => setIsCreating(true)}
             aria-label="New space"
             title="New space"
-            className="w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 pointer-coarse:-mr-1.5 flex items-center justify-center rounded-md text-ink-3 transition-colors hover:text-accent hover:bg-tint-2"
+            className="w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 pointer-coarse:-mr-1.5 flex items-center justify-center rounded-md text-ink-3 transition-colors hover:text-accent-ink hover:bg-tint-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -72,7 +72,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
             onBlur={() => setIsCreating(false)}
             placeholder="Space name..."
             aria-label="New space name"
-            className="w-full text-sm rounded-lg px-3 py-2 mb-1 bg-surface border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
+            className="w-full text-sm rounded-lg px-3 py-2 mb-1 bg-surface border border-field text-ink placeholder:text-ink-3 focus:border-ring focus-visible:outline-none"
           />
         )}
 
@@ -86,7 +86,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
                   aria-current={selected ? 'page' : undefined}
                   className={`w-full text-left pl-3 pr-9 py-2 pointer-coarse:py-3 pointer-coarse:pr-12 rounded-lg text-sm border transition-colors ${
                     selected
-                      ? 'bg-tint-2 text-accent border-line-2'
+                      ? 'bg-brand text-on-brand border-transparent font-medium'
                       : 'text-ink-2 border-transparent hover:bg-tint hover:text-ink'
                   }`}
                 >
@@ -97,7 +97,10 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
                   onClick={() => onDeleteSpace(space.id)}
                   aria-label={`Delete space ${space.name}`}
                   title="Delete space"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 flex items-center justify-center rounded-md text-ink-3 transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-danger hover:bg-danger-tint"
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 flex items-center justify-center rounded-md transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 ${
+                    // On the cobalt selected row, muted grey would fail contrast; use the on-brand white.
+                    selected ? 'text-on-brand hover:bg-white/15' : 'text-ink-3 hover:text-danger hover:bg-danger-tint'
+                  }`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

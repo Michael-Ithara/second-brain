@@ -15,13 +15,13 @@ const tokens = {
     brandButtonText: 'var(--on-accent)',
     inputBackground: 'var(--surface)',
     inputBorder: 'var(--field)',
-    inputBorderFocus: 'var(--accent)',
-    inputBorderHover: 'var(--accent)',
+    inputBorderFocus: 'var(--ring)',
+    inputBorderHover: 'var(--ring)',
     inputText: 'var(--ink)',
     inputLabelText: 'var(--ink-2)',
     inputPlaceholder: 'var(--ink-3)',
     anchorTextColor: 'var(--ink-2)',
-    anchorTextHoverColor: 'var(--accent)',
+    anchorTextHoverColor: 'var(--accent-ink)',
     messageTextDanger: 'var(--danger)',
   },
   fonts: {
@@ -55,7 +55,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandMark size="md" />
-          <h1 className="font-display text-2xl font-semibold text-ink mt-4">Second Brain</h1>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink mt-4">Second Brain</h1>
           <p className="text-ink-2 text-sm mt-2">Your personal knowledge base</p>
         </div>
 

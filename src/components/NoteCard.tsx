@@ -19,7 +19,7 @@ export function EmbedBadge({ status, onRetry }: { status?: EmbedStatus; onRetry:
         <span className="text-danger">Not searchable</span>
         <button
           onClick={onRetry}
-          className="relative z-10 rounded px-1 -mx-1 text-accent hover:text-accent-hover hover:underline"
+          className="relative z-10 rounded px-1 -mx-1 text-accent-ink hover:text-accent-ink-hover hover:underline"
         >
           Retry
         </button>

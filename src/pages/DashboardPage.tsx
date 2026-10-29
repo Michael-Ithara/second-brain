@@ -61,7 +61,7 @@ export function DashboardPage() {
               <p className="text-ink-2">Select a space or create a new one</p>
               <button
                 onClick={() => setDrawerOpen(true)}
-                className="md:hidden font-display text-sm font-semibold px-4 py-2.5 rounded-xl bg-accent text-on-accent hover:bg-accent-hover"
+                className="md:hidden font-display text-sm font-semibold px-4 py-2.5 rounded-xl bg-accent text-on-accent shadow-edge hover:bg-accent-hover"
               >
                 Choose a space
               </button>
