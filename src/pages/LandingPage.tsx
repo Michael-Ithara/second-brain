@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { BrandMark } from '../components/BrandMark'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -428,7 +429,9 @@ export function LandingPage() {
   }, [onScroll])
 
   return (
-    <div style={{ background: '#080c14', minHeight: '100vh', color: '#e2e8f0' }}>
+    // scheme-dark: the landing page stays dark in light mode — its canvas art and
+    // glow colours are drawn for a dark background.
+    <div className="scheme-dark" style={{ background: '#080c14', minHeight: '100vh', color: '#e2e8f0' }}>
       <style>{`
         .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
@@ -446,12 +449,7 @@ export function LandingPage() {
         transition: 'all 0.3s ease',
       }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(79,156,249,0.15)', border: '1px solid rgba(79,156,249,0.3)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="2">
-              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44l-3.5-13A2.5 2.5 0 0 1 5.97 2H9.5z"/>
-              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44l3.5-13A2.5 2.5 0 0 0 18.03 2H14.5z"/>
-            </svg>
-          </div>
+          <BrandMark />
           <span className="display font-semibold text-sm" style={{ color: '#e2e8f0' }}>Second Brain</span>
         </div>
 

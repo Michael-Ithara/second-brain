@@ -34,8 +34,8 @@ function SourceList({ sources, onOpenNote }: { sources: Source[]; onOpenNote: (i
             key={source.id}
             onClick={() => setOpenId(openId === source.id ? null : source.id)}
             aria-expanded={openId === source.id}
-            className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1 max-w-full transition-colors text-[#cbd5e1] border border-[rgba(79,156,249,0.2)] hover:bg-[rgba(79,156,249,0.12)] ${
-              openId === source.id ? 'bg-[rgba(79,156,249,0.12)]' : 'bg-[rgba(79,156,249,0.05)]'
+            className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1 max-w-full transition-colors text-ink border border-line-2 hover:bg-tint-2 ${
+              openId === source.id ? 'bg-tint-2' : 'bg-tint'
             }`}
           >
             <span className="text-accent">{i + 1}</span>
@@ -44,7 +44,7 @@ function SourceList({ sources, onOpenNote }: { sources: Source[]; onOpenNote: (i
         ))}
       </div>
       {open && (
-        <div className="mt-2 rounded-lg px-3 py-2 bg-[rgba(79,156,249,0.04)] border border-[rgba(79,156,249,0.1)]">
+        <div className="mt-2 rounded-lg px-3 py-2 bg-tint border border-line">
           <p className="text-xs leading-relaxed line-clamp-6 text-ink-2">
             {open.content}
           </p>
@@ -85,13 +85,12 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
     <section aria-labelledby="chat-heading" className="flex flex-col h-full bg-canvas">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(79,156,249,0.08)]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div className="flex items-center gap-2">
           <div
-            className="w-5 h-5 rounded-md flex items-center justify-center"
-            style={{ background: 'rgba(79,156,249,0.15)', border: '1px solid rgba(79,156,249,0.3)' }}
+            className="w-5 h-5 rounded-md flex items-center justify-center bg-tint-2 border border-line-2 text-accent"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="2" aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
@@ -116,10 +115,9 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-6">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(79,156,249,0.08)', border: '1px solid rgba(79,156,249,0.15)' }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-tint-2 border border-line-2 text-accent"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="1.5" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
@@ -140,7 +138,7 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
             <div
               className={`max-w-[88%] rounded-xl text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-[rgba(79,156,249,0.1)] border border-[rgba(79,156,249,0.2)] text-ink px-3.5 py-2.5'
+                  ? 'bg-tint-2 border border-line-2 text-ink px-3.5 py-2.5'
                   : 'text-ink'
               }`}
             >
@@ -162,7 +160,7 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
                       <li className="text-ink mb-1">{children}</li>
                     ),
                     code: ({ children }) => (
-                      <code className="font-mono text-[0.78rem] text-accent rounded px-[0.35rem] py-[0.1rem] bg-[rgba(79,156,249,0.08)] border border-[rgba(79,156,249,0.12)]">
+                      <code className="font-mono text-[0.78rem] text-accent rounded px-[0.35rem] py-[0.1rem] bg-tint-2 border border-line-2">
                         {children}
                       </code>
                     ),
@@ -187,13 +185,8 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: '#4f9cf9',
-                    opacity: 0.5,
-                    animation: 'pulse 1.2s ease-in-out infinite',
-                    animationDelay: `${i * 0.2}s`,
-                  }}
+                  className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"
+                  style={{ animationDelay: `${i * 0.2}s` }}
                 />
               ))}
             </div>
@@ -204,7 +197,7 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-[rgba(79,156,249,0.08)]">
+      <div className="p-4 border-t border-line">
         <div className="flex gap-2 items-end">
           <textarea
             value={input}
@@ -214,12 +207,12 @@ export function ChatPanel({ spaceId, onOpenNote }: Props) {
             aria-label="Question"
             aria-describedby="chat-hint"
             rows={2}
-            className="flex-1 text-sm resize-none rounded-xl px-3.5 py-2.5 transition-colors duration-200 bg-[rgba(79,156,249,0.04)] border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
+            className="flex-1 text-sm resize-none rounded-xl px-3.5 py-2.5 transition-colors duration-200 bg-surface border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="font-display text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors duration-200 shrink-0 bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
+            className="font-display text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors duration-200 shrink-0 bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             Ask
           </button>
