@@ -1,22 +1,26 @@
 import type { Note } from '../types'
 
-export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
-
-// updated_at is set on insert too, so allow a small gap before calling a note edited.
-export function isEdited(note: Note) {
-  return new Date(note.updated_at).getTime() - new Date(note.created_at).getTime() > 60_000
-}
-
 export function hostOf(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
   } catch {
     return url
   }
+}
+
+// "Untitled", or "Untitled 2", "Untitled 3"… if that's taken, as Obsidian names new
+// notes. Titles will identify notes once [[links]] exist, so keep them unique.
+export function untitledName(notes: Note[]) {
+  const taken = new Set(notes.map(n => (n.title ?? '').toLowerCase()))
+  if (!taken.has('untitled')) return 'Untitled'
+  let i = 2
+  while (taken.has(`untitled ${i}`)) i++
+  return `Untitled ${i}`
+}
+
+// A to Z by title, like a file explorer. Untitled notes sort as "Untitled".
+export function byTitle(a: Note, b: Note) {
+  return (a.title || 'Untitled').localeCompare(b.title || 'Untitled', undefined, { numeric: true, sensitivity: 'base' })
 }
 
 // Every word must appear in the text, in any order, ignoring case.

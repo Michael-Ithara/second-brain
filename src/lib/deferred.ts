@@ -26,6 +26,10 @@ export function cancelDeferred(key: string): boolean {
   return true
 }
 
+export function isDeferred(key: string) {
+  return pending.has(key)
+}
+
 export function flushDeferred() {
   for (const [key, entry] of pending) {
     clearTimeout(entry.timer)

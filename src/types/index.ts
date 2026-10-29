@@ -24,7 +24,7 @@ export interface Note {
     updated_at: string;
 }
 
-// Whether a note can be found by chat search yet.
-// 'saving' = new note not stored yet (shown optimistically), 'embedding' = request
-// in flight, 'missing' = no vector stored (failed or never ran).
-export type EmbedStatus = 'saving' | 'embedding' | 'missing'
+// Whether chat search sees a note's current text.
+// 'pending' = edited, re-embed scheduled; 'embedding' = request in flight;
+// 'stale' = search has an older version; 'missing' = search can't see it at all.
+export type EmbedStatus = 'pending' | 'embedding' | 'stale' | 'missing'

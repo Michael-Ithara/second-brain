@@ -14,10 +14,10 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          {/* One route with an optional segment, so /app → /app/:id keeps the same
-              Dashboard instance (no refetch, no flash). */}
+          {/* One route with optional segments, so /app → /app/:space → /app/:space/:note
+              keeps the same Dashboard instance (no refetch, no flash). */}
           <Route
-            path="/app/:spaceId?"
+            path="/app/:spaceId?/:noteId?"
             element={
               <ProtectedRoute>
                 <DashboardPage />
