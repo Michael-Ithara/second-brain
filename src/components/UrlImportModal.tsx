@@ -94,12 +94,12 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             aria-label="Article URL"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'url-import-error' : undefined}
-            className="flex-1 text-sm rounded-xl px-3.5 py-2.5 bg-tint border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
+            className="flex-1 text-sm rounded-xl px-3.5 py-2.5 bg-tint border border-field text-ink placeholder:text-ink-3 focus:border-ring focus-visible:outline-none"
           />
           <button
             onClick={handleFetch}
             disabled={!url.trim() || loading}
-            className="font-display text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0 bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
+            className="font-display text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0 bg-accent text-on-accent shadow-edge hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             {loading && !preview ? 'Fetching...' : 'Fetch'}
           </button>
@@ -137,7 +137,7 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             <button
               onClick={handleImport}
               disabled={loading}
-              className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-60"
+              className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent shadow-edge hover:bg-accent-hover disabled:opacity-60"
             >
               {loading ? 'Importing...' : 'Import as note'}
             </button>
