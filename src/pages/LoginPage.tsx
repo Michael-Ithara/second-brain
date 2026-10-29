@@ -12,11 +12,11 @@ export function LoginPage() {
   if (session) return <Navigate to="/app" replace />
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-canvas flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-white">Second Brain</h1>
-          <p className="text-gray-500 text-sm mt-2">Your personal knowledge base</p>
+          <h1 className="font-display text-2xl font-semibold text-ink">Second Brain</h1>
+          <p className="text-ink-2 text-sm mt-2">Your personal knowledge base</p>
         </div>
 
         <Auth

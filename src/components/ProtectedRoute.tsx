@@ -11,8 +11,8 @@ export function ProtectedRoute({ children }: Props) {
   // Don't redirect while we're still checking auth state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Loading...</p>
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <p role="status" className="text-ink-2 text-sm">Loading...</p>
       </div>
     )
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { invokeFunction } from '../lib/supabase'
 
 interface ScrapeResult {
@@ -13,10 +13,21 @@ interface Props {
 }
 
 export function UrlImportModal({ onImport, onClose }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<ScrapeResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // showModal() gives us a real modal: focus moves in and is trapped, the page
+  // behind goes inert, and Escape fires `close`. The dialog is removed from the
+  // DOM rather than closed, so focus is handed back to the opener by hand.
+  useEffect(() => {
+    const dialog = dialogRef.current
+    const opener = document.activeElement as HTMLElement | null
+    if (dialog && !dialog.open) dialog.showModal()
+    return () => opener?.focus()
+  }, [])
 
   const handleFetch = async () => {
     if (!url.trim()) return
@@ -43,41 +54,31 @@ export function UrlImportModal({ onImport, onClose }: Props) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleFetch()
-    if (e.key === 'Escape') onClose()
   }
 
   return (
-    // Backdrop
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="url-import-title"
+      onClose={onClose}
+      // A click on the backdrop lands on the <dialog> itself; clicks on content land on children.
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      className="m-auto w-full max-w-lg p-0 bg-transparent backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
-      <div
-        className="w-full max-w-lg rounded-2xl p-6"
-        style={{
-          background: '#111318',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.6)'
-        }}
-      >
+      <div className="rounded-2xl p-6 bg-surface border border-[rgba(79,156,249,0.15)] shadow-[0_24px_64px_rgba(0,0,0,0.6)] text-ink">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 style={{
-            fontFamily: 'Instrument Serif, serif',
-            fontSize: '1.1rem',
-            color: '#f0ede8'
-          }}>
+          <h2 id="url-import-title" className="font-display text-lg font-semibold text-ink">
             Import from URL
           </h2>
           <button
             onClick={onClose}
-            className="text-xs transition-colors"
-            style={{ color: '#3a3a4a' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#6a6a7a')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#3a3a4a')}
+            aria-label="Close"
+            className="w-7 h-7 -mr-1.5 flex items-center justify-center rounded-md text-ink-2 transition-colors hover:text-ink hover:bg-[rgba(79,156,249,0.08)]"
           >
-            ✕
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
 
@@ -90,24 +91,15 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             onChange={e => setUrl(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="https://..."
-            className="flex-1 text-sm outline-none rounded-xl px-3.5 py-2.5"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#f0ede8',
-            }}
-            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+            aria-label="Article URL"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'url-import-error' : undefined}
+            className="flex-1 text-sm rounded-xl px-3.5 py-2.5 bg-[rgba(79,156,249,0.04)] border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
           />
           <button
             onClick={handleFetch}
             disabled={!url.trim() || loading}
-            className="text-xs font-medium px-4 py-2.5 rounded-xl transition-all shrink-0"
-            style={{
-              background: url.trim() ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.05)',
-              color: url.trim() ? '#0f0f0f' : '#3a3a4a',
-              cursor: url.trim() ? 'pointer' : 'not-allowed'
-            }}
+            className="font-display text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0 bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             {loading && !preview ? 'Fetching...' : 'Fetch'}
           </button>
@@ -115,34 +107,19 @@ export function UrlImportModal({ onImport, onClose }: Props) {
 
         {/* Error */}
         {error && (
-          <p className="text-xs mb-4 px-1" style={{ color: '#f87171' }}>{error}</p>
+          <p id="url-import-error" role="alert" className="text-xs mb-4 px-1 text-danger">{error}</p>
         )}
 
         {/* Preview */}
         {preview && (
-          <div
-            className="rounded-xl p-4 mb-4"
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)'
-            }}
-          >
-            <p className="text-sm font-medium mb-1" style={{
-              color: '#f0ede8',
-              fontFamily: 'Instrument Serif, serif'
-            }}>
+          <div className="rounded-xl p-4 mb-4 bg-[rgba(79,156,249,0.03)] border border-[rgba(79,156,249,0.1)]">
+            <p className="font-display text-sm font-semibold mb-1 text-ink">
               {preview.title || 'Untitled'}
             </p>
-            <p className="text-xs leading-relaxed" style={{
-              color: '#5a5a6a',
-              display: '-webkit-box',
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}>
+            <p className="text-xs leading-relaxed line-clamp-4 text-ink-2">
               {preview.content}
             </p>
-            <p className="text-xs mt-2 truncate" style={{ color: '#3a3a4a' }}>
+            <p className="text-xs mt-2 truncate text-ink-3">
               {preview.url}
             </p>
           </div>
@@ -152,10 +129,7 @@ export function UrlImportModal({ onImport, onClose }: Props) {
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-xs px-4 py-2 rounded-xl transition-all"
-            style={{ color: '#4a4a5a' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8a8a9a')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#4a4a5a')}
+            className="text-xs px-4 py-2 rounded-xl transition-colors text-ink-2 hover:text-ink"
           >
             Cancel
           </button>
@@ -163,17 +137,13 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             <button
               onClick={handleImport}
               disabled={loading}
-              className="text-xs font-medium px-4 py-2 rounded-xl transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.9)',
-                color: '#0f0f0f',
-              }}
+              className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-canvas hover:bg-accent-hover disabled:opacity-60"
             >
               {loading ? 'Importing...' : 'Import as note'}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }

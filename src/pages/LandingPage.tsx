@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ interface Pulse {
 // ── Neural Grid Canvas ────────────────────────────────────────────────────────
 
 function NeuralGrid() {
+  const reducedMotion = useReducedMotion()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mouseRef = useRef({ x: -999, y: -999 })
   const stateRef = useRef<{ nodes: Particle[]; pulses: Pulse[]; frame: number }>({
@@ -164,6 +166,8 @@ function NeuralGrid() {
         ctx.fill()
       })
 
+      // With reduced motion, draw a single still frame and stop.
+      if (reducedMotion) return
       if (frame % 90 === 0) spawnPulse()
       animId = requestAnimationFrame(draw)
     }
@@ -174,20 +178,23 @@ function NeuralGrid() {
     }
     const onMouseLeave = () => { mouseRef.current = { x: -999, y: -999 } }
 
+    // The loop redraws on its own; a still frame has to be redrawn after a resize.
+    const onResize = () => { resize(); if (reducedMotion) draw() }
+
     resize()
     draw()
-    window.addEventListener('resize', resize)
+    window.addEventListener('resize', onResize)
     canvas.addEventListener('mousemove', onMouseMove)
     canvas.addEventListener('mouseleave', onMouseLeave)
     return () => {
       cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
+      window.removeEventListener('resize', onResize)
       canvas.removeEventListener('mousemove', onMouseMove)
       canvas.removeEventListener('mouseleave', onMouseLeave)
     }
-  }, [])
+  }, [reducedMotion])
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+  return <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 w-full h-full" />
 }
 
 // ── Typewriter Demo ───────────────────────────────────────────────────────────
@@ -208,13 +215,17 @@ const DEMOS = [
 ]
 
 function TypewriterDemo() {
+  const reducedMotion = useReducedMotion()
   const [idx, setIdx] = useState(0)
-  const [phase, setPhase] = useState<'typing-q' | 'waiting' | 'typing-a'>('typing-q')
-  const [q, setQ] = useState('')
-  const [a, setA] = useState('')
+  const [typedPhase, setPhase] = useState<'typing-q' | 'waiting' | 'typing-a' | 'done'>('typing-q')
+  const [typedQ, setQ] = useState('')
+  const [typedA, setA] = useState('')
   const current = DEMOS[idx]
 
-  useEffect(() => { setQ(''); setA(''); setPhase('typing-q') }, [idx])
+  // Reduced motion: show the first exchange complete, with no typing or rotation.
+  const phase = reducedMotion ? 'done' : typedPhase
+  const q = reducedMotion ? current.question : typedQ
+  const a = reducedMotion ? current.answer : typedA
 
   useEffect(() => {
     if (phase === 'typing-q') {
@@ -234,13 +245,17 @@ function TypewriterDemo() {
         const t = setTimeout(() => setA(current.answer.slice(0, a.length + 1)), 16)
         return () => clearTimeout(t)
       }
-      const t = setTimeout(() => setIdx(i => (i + 1) % DEMOS.length), 3200)
+      const t = setTimeout(() => {
+        setIdx(i => (i + 1) % DEMOS.length)
+        setQ(''); setA(''); setPhase('typing-q')
+      }, 3200)
       return () => clearTimeout(t)
     }
   }, [phase, q, a, current, idx])
 
   return (
-    <div className="rounded-2xl overflow-hidden w-full max-w-lg" style={{
+    // Illustration only; the half-typed text would be noise to a screen reader.
+    <div aria-hidden="true" className="rounded-2xl overflow-hidden w-full max-w-lg" style={{
       background: 'rgba(10,15,28,0.97)',
       border: '1px solid rgba(79,156,249,0.2)',
       boxShadow: '0 0 80px rgba(79,156,249,0.08), 0 0 0 1px rgba(79,156,249,0.05)',
@@ -253,7 +268,7 @@ function TypewriterDemo() {
           ))}
         </div>
         <div className="flex-1 mx-3">
-          <div className="rounded px-3 py-1 text-xs text-center" style={{ background: 'rgba(255,255,255,0.04)', color: '#475569', maxWidth: '180px', margin: '0 auto' }}>
+          <div className="rounded px-3 py-1 text-xs text-center" style={{ background: 'rgba(255,255,255,0.04)', color: '#7b8aa0', maxWidth: '180px', margin: '0 auto' }}>
             second-brain.app
           </div>
         </div>
@@ -297,10 +312,10 @@ function TypewriterDemo() {
       </div>
 
       <div className="px-4 py-2 flex items-center justify-between" style={{ borderTop: '1px solid rgba(79,156,249,0.08)', background: 'rgba(79,156,249,0.02)' }}>
-        <span className="text-xs" style={{ color: '#334155' }}>RAG · pgvector · Claude</span>
+        <span className="text-xs text-ink-3">RAG · pgvector · Claude</span>
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#48bb78' }} />
-          <span className="text-xs" style={{ color: '#334155' }}>AI connected</span>
+          <span className="text-xs text-ink-3">AI connected</span>
         </div>
       </div>
     </div>
@@ -310,8 +325,11 @@ function TypewriterDemo() {
 // ── Scroll Reveal ─────────────────────────────────────────────────────────────
 
 function useScrollReveal(threshold = 0.15) {
+  const reducedMotion = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
+  const [revealed, setVisible] = useState(false)
+  // Reduced motion: content is simply there, no slide-in.
+  const visible = revealed || reducedMotion
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) setVisible(true) },
@@ -334,33 +352,23 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon, title, description, delay }: FeatureCardProps) {
   const { ref, visible } = useScrollReveal()
-  const [hovered, setHovered] = useState(false)
   return (
     <div
       ref={ref}
-      className="rounded-2xl p-6 transition-all duration-500 cursor-default"
+      className="group rounded-2xl p-6 transition-all duration-500 cursor-default bg-white/2 border border-white/6 hover:bg-[rgba(79,156,249,0.05)] hover:border-[rgba(79,156,249,0.25)] hover:shadow-[0_0_40px_rgba(79,156,249,0.06)]"
       style={{
-        background: hovered ? 'rgba(79,156,249,0.05)' : 'rgba(255,255,255,0.02)',
-        border: hovered ? '1px solid rgba(79,156,249,0.25)' : '1px solid rgba(255,255,255,0.06)',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0) scale(1)' : 'translateY(28px) scale(0.97)',
         transitionDelay: `${delay}ms`,
-        boxShadow: hovered ? '0 0 40px rgba(79,156,249,0.06)' : 'none',
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300" style={{
-        background: hovered ? 'rgba(79,156,249,0.2)' : 'rgba(79,156,249,0.08)',
-        color: '#4f9cf9',
-        boxShadow: hovered ? '0 0 20px rgba(79,156,249,0.2)' : 'none',
-      }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 text-accent bg-[rgba(79,156,249,0.08)] group-hover:bg-[rgba(79,156,249,0.2)] group-hover:shadow-[0_0_20px_rgba(79,156,249,0.2)]">
         {icon}
       </div>
       <h3 className="font-semibold mb-2" style={{ color: '#e2e8f0', fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
         {title}
       </h3>
-      <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>{description}</p>
+      <p className="text-sm leading-relaxed text-ink-2">{description}</p>
     </div>
   )
 }
@@ -387,7 +395,7 @@ function Step({ number, title, description, delay }: StepProps) {
       <h3 className="font-semibold mb-2" style={{ color: '#e2e8f0', fontSize: '1rem', letterSpacing: '-0.01em' }}>
         {title}
       </h3>
-      <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>{description}</p>
+      <p className="text-sm leading-relaxed text-ink-2">{description}</p>
     </div>
   )
 }
@@ -398,7 +406,7 @@ function StatPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center px-5 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <span className="font-bold text-xl" style={{ color: '#4f9cf9', letterSpacing: '-0.03em', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>{value}</span>
-      <span className="text-xs mt-0.5" style={{ color: '#475569' }}>{label}</span>
+      <span className="text-xs mt-0.5 text-ink-3">{label}</span>
     </div>
   )
 }
@@ -408,8 +416,11 @@ function StatPill({ label, value }: { label: string; value: string }) {
 export function LandingPage() {
   const { ref: howRef, visible: howVisible } = useScrollReveal()
   const { ref: techRef, visible: techVisible } = useScrollReveal()
+  const reducedMotion = useReducedMotion()
   const [scrollY, setScrollY] = useState(0)
   const onScroll = useCallback(() => setScrollY(window.scrollY), [])
+  // Parallax offset; off under reduced motion.
+  const parallax = reducedMotion ? 0 : scrollY
 
   useEffect(() => {
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -419,8 +430,6 @@ export function LandingPage() {
   return (
     <div style={{ background: '#080c14', minHeight: '100vh', color: '#e2e8f0' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
-        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
         .display { font-family: 'Space Grotesk', system-ui, sans-serif; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
@@ -448,17 +457,11 @@ export function LandingPage() {
 
         <div className="hidden md:flex items-center gap-8">
           {[['How it works', '#how-it-works'], ['Features', '#features'], ['Tech stack', '#tech-stack']].map(([label, href]) => (
-            <a key={label} href={href} className="text-sm transition-colors duration-200" style={{ color: '#64748b' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
-            >{label}</a>
+            <a key={label} href={href} className="text-sm transition-colors duration-200 text-ink-2 hover:text-ink">{label}</a>
           ))}
         </div>
 
-        <Link to="/login" className="text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200" style={{ background: 'rgba(79,156,249,0.12)', color: '#4f9cf9', border: '1px solid rgba(79,156,249,0.25)' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(79,156,249,0.2)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(79,156,249,0.2)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(79,156,249,0.12)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
+        <Link to="/login" className="text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 text-accent bg-[rgba(79,156,249,0.12)] border border-[rgba(79,156,249,0.25)] hover:bg-[rgba(79,156,249,0.2)] hover:shadow-[0_0_20px_rgba(79,156,249,0.2)]">
           Get started →
         </Link>
       </nav>
@@ -469,12 +472,12 @@ export function LandingPage() {
 
         <div className="absolute inset-0 pointer-events-none" style={{
           background: 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(79,156,249,0.07) 0%, transparent 65%)',
-          transform: `translateY(${scrollY * 0.15}px)`,
+          transform: `translateY(${parallax * 0.15}px)`,
         }} />
         <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to bottom, transparent, #080c14)' }} />
 
         <div className="relative z-10 max-w-6xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center pt-24"
-          style={{ transform: `translateY(${-scrollY * 0.12}px)` }}
+          style={{ transform: `translateY(${-parallax * 0.12}px)` }}
         >
           <div>
             <div className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full mb-8" style={{ background: 'rgba(79,156,249,0.08)', border: '1px solid rgba(79,156,249,0.18)', color: '#4f9cf9' }}>
@@ -489,22 +492,16 @@ export function LandingPage() {
               </span>
             </h1>
 
-            <p className="text-base leading-relaxed mb-10" style={{ color: '#64748b', maxWidth: '420px', fontSize: '1.05rem' }}>
+            <p className="text-base leading-relaxed mb-10 text-ink-2" style={{ maxWidth: '420px', fontSize: '1.05rem' }}>
               Capture notes, import articles, and chat with your entire knowledge base in natural language. Second Brain makes your scattered thoughts queryable, connected, and intelligent.
             </p>
 
             <div className="flex items-center gap-4 flex-wrap">
-              <Link to="/login" className="inline-flex items-center gap-2 text-sm font-semibold px-6 py-3 rounded-xl transition-all duration-200 display" style={{ background: '#4f9cf9', color: '#080c14' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#6baeff'; e.currentTarget.style.boxShadow = '0 0 32px rgba(79,156,249,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#4f9cf9'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
-              >
+              <Link to="/login" className="inline-flex items-center gap-2 text-sm font-semibold px-6 py-3 rounded-xl transition-all duration-200 display bg-accent text-canvas hover:bg-accent-hover hover:shadow-[0_0_32px_rgba(79,156,249,0.5)] hover:-translate-y-px">
                 Start for free
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
-              <a href="#how-it-works" className="text-sm transition-colors duration-200" style={{ color: '#475569' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
-              >
+              <a href="#how-it-works" className="text-sm transition-colors duration-200 text-ink-2 hover:text-ink">
                 See how it works ↓
               </a>
             </div>
@@ -592,10 +589,10 @@ export function LandingPage() {
               { label: 'Tailwind CSS v4', color: '#38bdf8' },
               { label: 'Netlify', color: '#00c7b7' },
             ].map(({ label, color }) => (
-              <span key={label} className="text-sm px-4 py-2 rounded-full transition-all duration-200 cursor-default" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = `${color}40`; e.currentTarget.style.color = color; e.currentTarget.style.background = `${color}10` }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-              >
+              // Static labels, not controls, so no hover state. The brand colour sits in
+              // a dot rather than the text: some (pgvector #336791) are unreadable as text.
+              <span key={label} className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-full text-ink-2 bg-white/3 border border-white/8">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} aria-hidden="true" />
                 {label}
               </span>
             ))}
@@ -611,13 +608,10 @@ export function LandingPage() {
           <h2 className="display mb-6" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', color: '#f1f5f9', letterSpacing: '-0.03em', lineHeight: 1.1, fontWeight: 700 }}>
             Your notes deserve to be more than a graveyard.
           </h2>
-          <p className="text-base mb-10" style={{ color: '#475569' }}>
+          <p className="text-base mb-10 text-ink-2">
             Start building a knowledge base that actually talks back.
           </p>
-          <Link to="/login" className="display inline-flex items-center gap-2 text-sm font-semibold px-8 py-4 rounded-xl transition-all duration-200" style={{ background: '#4f9cf9', color: '#080c14' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#6baeff'; e.currentTarget.style.boxShadow = '0 0 40px rgba(79,156,249,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#4f9cf9'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
-          >
+          <Link to="/login" className="display inline-flex items-center gap-2 text-sm font-semibold px-8 py-4 rounded-xl transition-all duration-200 bg-accent text-canvas hover:bg-accent-hover hover:shadow-[0_0_40px_rgba(79,156,249,0.5)] hover:-translate-y-0.5">
             Get started for free
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </Link>
@@ -630,7 +624,7 @@ export function LandingPage() {
                   <span className="display text-sm font-semibold" style={{ color: '#4f9cf9', textShadow: '0 0 20px rgba(79,156,249,0.5)' }}>
                       Second Brain
                   </span>
-                  <p className="text-xs" style={{ color: '#475569' }}>
+                  <p className="text-xs text-ink-3">
                       Built by Michael · {new Date().getFullYear()}
                   </p>
               </div>
