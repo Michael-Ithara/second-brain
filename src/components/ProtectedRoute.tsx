@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
 
 export function ProtectedRoute({ children }: Props) {
   const { session, loading } = useAuth()
+  const location = useLocation()
 
   // Don't redirect while we're still checking auth state
   if (loading) {
@@ -18,7 +19,8 @@ export function ProtectedRoute({ children }: Props) {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    // Remember where they were headed so login can send them back there.
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
 
   return <>{children}</>

@@ -57,7 +57,7 @@ export function SpaceView({ space }: Props) {
               onClick={() => setPane(p)}
               aria-pressed={pane === p}
               className={`py-1.5 rounded-md text-sm font-medium transition-colors ${
-                pane === p ? 'bg-surface text-ink shadow-sm' : 'text-ink-2 hover:text-ink'
+                pane === p ? 'bg-raised text-ink shadow-sm' : 'text-ink-2 hover:text-ink'
               }`}
             >
               {p === 'notes' ? 'Notes' : 'Chat'}
