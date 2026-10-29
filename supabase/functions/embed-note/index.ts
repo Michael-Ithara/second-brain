@@ -1,4 +1,6 @@
 import { adminClient, requireUser } from '../_shared/auth.ts'
+import { chunkText } from '../_shared/chunk.ts'
+import { embed } from '../_shared/voyage.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,39 +60,28 @@ Deno.serve(async (req) => {
       )
     }
 
-    const content = `${note.title ? note.title + '\n' : ''}${note.content}`
+    // Split the note, then embed each chunk with the title in front so a chunk
+    // from the middle of a note still carries what the note is about.
+    const title = note.title ?? ''
+    const chunks = chunkText(note.content)
+    const embeddings = await embed(
+      chunks.map(c => (title ? `${title}\n\n${c}` : c)),
+      'document',
+    )
 
-    const voyageResponse = await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('VOYAGE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'voyage-3-lite',
-        input: content,
-        input_type: 'document',
-      }),
+    // Swap the note's chunks in one transaction. Passing the text we chunked
+    // lets the DB skip the write if the note was edited while we were working.
+    const { data: written, error } = await supabase.rpc('replace_note_chunks', {
+      p_note_id: noteId,
+      p_title: title,
+      p_content: note.content,
+      p_chunks: chunks.map((content, i) => ({ content, embedding: embeddings[i] })),
     })
-
-    const voyageData = await voyageResponse.json()
-
-    if (!voyageResponse.ok) {
-      throw new Error(`Voyage API error: ${voyageResponse.status}`)
-    }
-
-    const embedding = voyageData.data[0].embedding
-
-    const { error } = await supabase
-      .from('notes')
-      .update({ embedding })
-      .eq('id', noteId)
-      .eq('user_id', userId)
 
     if (error) throw error
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, chunks: chunks.length, stale: written === false }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

@@ -34,16 +34,13 @@ export function useNotes(spaceId: string | null) {
           .select(NOTE_COLUMNS)
           .eq('space_id', spaceId)
           .order('created_at', { ascending: false }),
-        supabase
-          .from('notes')
-          .select('id')
-          .eq('space_id', spaceId)
-          .is('embedding', null),
+        // Notes with no rows in note_chunks — chat search can't see them.
+        supabase.rpc('unindexed_note_ids', { p_space_id: spaceId }),
       ])
       if (cancelled) return
       if (!notesRes.error && notesRes.data) setNotes(notesRes.data)
       if (!missingRes.error && missingRes.data) {
-        setEmbedStatus(Object.fromEntries(missingRes.data.map(n => [n.id, 'missing' as const])))
+        setEmbedStatus(Object.fromEntries((missingRes.data as string[]).map(id => [id, 'missing' as const])))
       }
       setLoading(false)
     }
@@ -62,6 +59,12 @@ export function useNotes(spaceId: string | null) {
       setStatus(id, 'missing')
     }
   }, [])
+
+  // One at a time: Voyage's free tier allows only a few requests per minute.
+  const indexMissing = async () => {
+    const ids = Object.keys(embedStatus).filter(id => embedStatus[id] === 'missing')
+    for (const id of ids) await embed(id)
+  }
 
   const createNote = async (title: string, content: string, sourceUrl?: string) => {
     if (!user || !spaceId) return
@@ -92,9 +95,8 @@ export function useNotes(spaceId: string | null) {
         title,
         content,
         updated_at: new Date().toISOString(),
-        // Clear the old vector so search never matches text that is gone,
-        // and so a failed re-embed shows up as 'missing' after a reload.
-        embedding: null,
+        // No need to clear the old chunks here: a DB trigger drops them when
+        // title or content changes, and embed() below writes new ones.
       })
       .eq('id', id)
       .select(NOTE_COLUMNS)
@@ -118,5 +120,5 @@ export function useNotes(spaceId: string | null) {
     }
   }
 
-  return { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding: embed }
+  return { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding: embed, indexMissing }
 }

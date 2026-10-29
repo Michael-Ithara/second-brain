@@ -12,7 +12,10 @@ interface Props {
 }
 
 export function SpaceView({ space }: Props) {
-  const { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding } = useNotes(space.id)
+  const { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding, indexMissing } = useNotes(space.id)
+  const statuses = Object.values(embedStatus)
+  const missingCount = statuses.filter(s => s === 'missing').length
+  const indexing = statuses.includes('embedding')
   const [showUrlModal, setShowUrlModal] = useState(false)
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const openNote = notes.find(n => n.id === openNoteId)
@@ -76,6 +79,22 @@ export function SpaceView({ space }: Props) {
           </div>
 
           <NoteForm onSubmit={createNote} />
+
+          {/* One card's Retry is enough for one note; past that, offer a bulk fix. */}
+          {missingCount > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 mb-4 text-xs bg-[rgba(248,113,113,0.05)] border border-[rgba(248,113,113,0.25)]">
+              <p className="text-ink-2">
+                {missingCount} notes aren't searchable, so chat can't use them.
+              </p>
+              <button
+                onClick={indexMissing}
+                disabled={indexing}
+                className="font-display font-semibold px-3 py-1.5 rounded-lg transition-colors text-accent bg-[rgba(79,156,249,0.06)] border border-[rgba(79,156,249,0.25)] hover:bg-[rgba(79,156,249,0.12)] disabled:text-ink-3 disabled:cursor-not-allowed"
+              >
+                {indexing ? 'Indexing…' : 'Make all searchable'}
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div role="status" className="flex items-center gap-2 mt-4">
