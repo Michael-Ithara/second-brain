@@ -20,6 +20,7 @@
   color-scheme: dark;
   --canvas: #05060a;
   --surface: #0d0f15;
+  --raised: rgba(255, 255, 255, 0.11);  /* selected segment: must read lighter than canvas */
   --ink: #f2f4f8;            /* 18.4:1 */
   --ink-2: #a4acba;          /*  8.9:1 */
   --ink-3: #868fa0;          /*  6.2:1 */
@@ -50,6 +51,7 @@
     color-scheme: light;
     --canvas: #f4f5f7;
     --surface: #ffffff;
+    --raised: #ffffff;
     --ink: #0a0c10;          /* 17.9:1 */
     --ink-2: #4a5160;        /*  7.3:1 */
     --ink-3: #5d6473;        /*  5.4:1 */
@@ -79,6 +81,7 @@
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-raised: var(--raised);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
