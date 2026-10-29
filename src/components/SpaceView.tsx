@@ -22,6 +22,12 @@ export function SpaceView({ space }: Props) {
   // so switching doesn't lose the chat or a half-written note.
   const [pane, setPane] = useState<'notes' | 'chat'>('notes')
   const openNote = notes.find(n => n.id === openNoteId)
+  // Starter questions for the empty chat, from the newest titled notes.
+  const suggestions = notes.length === 0 ? [] : [
+    ...notes.filter(n => n.title).slice(0, 2).map((n, i) =>
+      i === 0 ? `What are the key points in “${n.title}”?` : `Summarize what I wrote about ${n.title}`),
+    'What have I written about most recently?',
+  ]
 
   const handleUrlImport = async (title: string, content: string, sourceUrl: string) => {
     await createNote(title, content, sourceUrl)
@@ -158,7 +164,7 @@ export function SpaceView({ space }: Props) {
 
       {/* Chat panel */}
       <div className={`${pane === 'chat' ? 'flex' : 'hidden'} lg:flex flex-1 lg:flex-none min-h-0 lg:w-96 flex-col lg:border-l border-line`}>
-        <ChatPanel spaceId={space.id} onOpenNote={setOpenNoteId} />
+        <ChatPanel spaceId={space.id} onOpenNote={setOpenNoteId} suggestions={suggestions} />
       </div>
     </div>
   )

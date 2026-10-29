@@ -32,11 +32,37 @@ function groupByNote(chunks: Chunk[]): NoteHit[] {
   return [...byNote.values()] // Map keeps insertion order = RPC's score order
 }
 
+// Earlier turns sent by the client, so follow-ups ("and the second one?") work.
+// Kept short and validated: it's the caller's own chat, but it still costs tokens.
+const MAX_HISTORY = 6
+const MAX_TURN_CHARS = 4000
+
+function cleanHistory(raw: unknown): Anthropic.MessageParam[] {
+  if (!Array.isArray(raw)) return []
+  const turns = raw
+    .filter((m): m is { role: 'user' | 'assistant'; content: string } =>
+      (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string' && m.content.trim() !== '')
+    .slice(-MAX_HISTORY)
+    .map(m => ({ role: m.role, content: m.content.slice(0, MAX_TURN_CHARS) }))
+  // The API wants the conversation to start with a user turn.
+  while (turns.length && turns[0].role !== 'user') turns.shift()
+  return turns
+}
+
+const SYSTEM_PROMPT = `You are the assistant inside Second Brain, a personal knowledge base.
+Answer the user's question using only the numbered sources from their notes.
+Cite the sources you rely on inline with their number in square brackets, like [1] or [2][3], placed right after the sentence they support. Only use numbers that appear in the sources.
+If the sources don't contain the answer, say so plainly in one or two sentences and don't cite anything — never fill gaps from general knowledge.
+Keep answers concise and use Markdown for lists or emphasis when it helps.`
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
+
+const jsonError = (error: string, status: number) =>
+  new Response(JSON.stringify({ error }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,25 +70,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, spaceId } = await req.json()
+    const { question, spaceId, history } = await req.json()
 
-    if (!question || !spaceId) {
-      return new Response(
-        JSON.stringify({ error: 'question and spaceId are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    if (!question || !spaceId) return jsonError('question and spaceId are required', 400)
 
     // Step 0 — Make sure the caller owns this space. The service-role client
     // skips RLS, so without this any signed-in user could query any space.
     const supabase = adminClient()
     const userId = await requireUser(req, supabase)
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    if (!userId) return jsonError('Unauthorized', 401)
 
     const { data: space } = await supabase
       .from('spaces')
@@ -71,20 +87,20 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle()
 
-    if (!space) {
-      return new Response(
-        JSON.stringify({ error: 'Space not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    if (!space) return jsonError('Space not found', 404)
 
-    // Step 1 — Embed the question
-    const [questionEmbedding] = await embed([question], 'query')
+    const previous = cleanHistory(history)
+
+    // Step 1 — Embed the question. For a follow-up, search with the previous
+    // question too: "what about the second one?" alone matches nothing.
+    const lastQuestion = [...previous].reverse().find(m => m.role === 'user')?.content as string | undefined
+    const searchText = lastQuestion ? `${lastQuestion}\n${question}` : question
+    const [questionEmbedding] = await embed([searchText], 'query')
 
     // Step 2 — Hybrid search: vector similarity + keywords, merged by rank
     const { data: chunks, error: searchError } = await supabase.rpc('match_note_chunks', {
       query_embedding: questionEmbedding,
-      query_text: question,
+      query_text: searchText,
       match_space_id: spaceId,
       match_count: 8,
     })
@@ -109,38 +125,58 @@ Deno.serve(async (req) => {
       similarity: n.similarity,
     }))
 
-    // Step 4 — Ask Claude
-    const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
+    // Step 4 — Stream Claude's answer back as NDJSON, one event per line:
+    //   {"type":"sources","sources":[...]}   first, so the UI can link citations early
+    //   {"type":"delta","text":"..."}        as the answer is written
+    //   {"type":"done","stopReason":"..."}   at the end
+    //   {"type":"error","message":"..."}     if it fails part-way
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
+    const encoder = new TextEncoder()
+
+    const body = new ReadableStream({
+      async start(controller) {
+        const send = (event: unknown) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
+        send({ type: 'sources', sources })
+
+        const stream = anthropic.messages.stream({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT,
+          messages: [
+            ...previous,
+            { role: 'user', content: `Sources from my notes:\n\n${context}\n\nQuestion: ${question}` },
+          ],
+        })
+
+        // The browser pressed Stop or went away: stop paying for tokens nobody reads.
+        const onAbort = () => stream.abort()
+        req.signal.addEventListener('abort', onAbort)
+
+        try {
+          stream.on('text', text => send({ type: 'delta', text }))
+          const final = await stream.finalMessage()
+          send({ type: 'done', stopReason: final.stop_reason })
+        } catch (err) {
+          if (!req.signal.aborted) {
+            console.log('Stream error:', (err as Error).message)
+            send({ type: 'error', message: 'The answer stopped part-way. Try again.' })
+          }
+        } finally {
+          req.signal.removeEventListener('abort', onAbort)
+          try { controller.close() } catch { /* already closed by a disconnect */ }
+        }
+      },
     })
 
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: `You are a helpful assistant for a personal knowledge base called Second Brain.
-Answer the user's question based only on the notes provided as context.
-If the context doesn't contain enough information to answer, say so honestly.
-Always cite which source(s) you used in your answer.`,
-      messages: [
-        {
-          role: 'user',
-          content: `Context from my notes:\n\n${context}\n\nQuestion: ${question}`,
-        },
-      ],
+    return new Response(body, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
     })
-
-    const answer = message.content[0].type === 'text' ? message.content[0].text : ''
-
-    return new Response(
-      JSON.stringify({ answer, sources }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
   } catch (err) {
     console.log('ERROR:', (err as Error).message)
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonError((err as Error).message, 500)
   }
 })

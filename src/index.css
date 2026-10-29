@@ -139,6 +139,18 @@ body {
   color: var(--on-accent);
 }
 
+/* Streaming chat answer: a blinking block after the last word. */
+.answer-streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 1em;
+  margin-left: 0.15rem;
+  vertical-align: -0.15em;
+  background: var(--accent-ink);
+  animation: pulse 1s ease-in-out infinite;
+}
+
 /* iOS Safari zooms the page when a field under 16px gets focus. */
 @media (pointer: coarse) {
   input, textarea, select {
