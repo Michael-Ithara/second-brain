@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
+import { NoteList } from '../components/NoteList'
 import { SpaceView, type SpaceViewHandle } from '../components/SpaceView'
 import { CommandPalette, type Command } from '../components/CommandPalette'
-import { matchesQuery } from '../lib/notes'
+import { UrlImportModal } from '../components/UrlImportModal'
+import { matchesQuery, untitledName } from '../lib/notes'
+import { useToast } from '../lib/toast'
 import { SpacesDrawer } from '../components/SpacesDrawer'
 import { useSpaces } from '../hooks/useSpaces'
+import { useNotes } from '../hooks/useNotes'
 import type { Space } from '../types' //always import types with "import type" to avoid accidentally importing values and causing circular dependencies
 
 // Last-opened space, per browser. A convenience only, so storage errors
@@ -21,24 +25,48 @@ function writeLastSpace(id: string) {
 export function DashboardPage() {
   // Lifted here so the desktop sidebar and the mobile drawer share one list.
   const { spaces, loading, createSpace, deleteSpace } = useSpaces()
-  // The open space lives in the URL (/app/:spaceId), so refresh, Back/Forward
-  // and shared links all work.
-  const { spaceId } = useParams()
+  // The open space and note live in the URL (/app/:spaceId/:noteId), so
+  // refresh, Back/Forward and shared links all work.
+  const { spaceId, noteId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const toast = useToast()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  // What the open space offers the palette. A callback ref into state (not useRef),
-  // so the palette re-renders with the space's latest notes.
+  // What the open space offers the palette (asking the chat).
   const [space, setSpace] = useState<SpaceViewHandle | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
   // Derived from the list, so deleting the open space also closes it.
   const selectedSpace = spaces.find(s => s.id === spaceId) ?? null
+  // Up here, not in SpaceView, because the sidebar's file list and the palette need them too.
+  const { notes, loading: notesLoading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding, indexMissing } = useNotes(spaceId ?? null)
+  const openNote = notes.find(n => n.id === noteId)
+  // Set by newNote() below, so the editor selects the "Untitled" title.
+  const isNew = (location.state as { newNote?: boolean } | null)?.newNote === true
 
   useEffect(() => {
-    document.title = selectedSpace ? `${selectedSpace.name} · Second Brain` : 'Second Brain'
+    const parts = [openNote && (openNote.title || 'Untitled'), selectedSpace?.name, 'Second Brain']
+    document.title = parts.filter(Boolean).join(' · ')
     if (selectedSpace) writeLastSpace(selectedSpace.id)
-  }, [selectedSpace])
+  }, [selectedSpace, openNote])
 
   const openSpace = (id: string) => navigate(`/app/${id}`)
+  const showNote = (id: string) => selectedSpace && navigate(`/app/${selectedSpace.id}/${id}`)
+
+  const newNote = async () => {
+    if (!selectedSpace) return
+    try {
+      const note = await createNote(untitledName(notes), '')
+      navigate(`/app/${selectedSpace.id}/${note.id}`, { state: { newNote: true } })
+    } catch {
+      toast({ tone: 'error', message: 'Couldn’t create a note. Try again.' })
+    }
+  }
+
+  const removeNote = (id: string) => {
+    if (id === noteId && selectedSpace) navigate(`/app/${selectedSpace.id}`)
+    deleteNote(id)
+  }
 
   const openPalette = () => {
     setDrawerOpen(false)
@@ -64,17 +92,15 @@ export function DashboardPage() {
 
   const getCommands = (query: string): Command[] => {
     const commands: Command[] = []
-    // Unsaved (optimistic) notes can't be opened yet.
-    const notes = space?.notes.filter(n => !n.id.startsWith('temp-')) ?? []
 
     // With nothing typed: what you'd reach for first, then the newest notes and every space.
     const noteHits = query
       ? notes.filter(n => matchesQuery(`${n.title}\n${n.content}`, query)).slice(0, 6)
       : notes.slice(0, 4)
     const spaceHits = query ? spaces.filter(s => matchesQuery(s.name, query)) : spaces
-    const actions: Command[] = space ? [
-      { id: 'new-note', group: 'Actions', label: 'New note', run: space.newNote },
-      { id: 'import-url', group: 'Actions', label: 'Import from URL', run: space.importUrl },
+    const actions: Command[] = selectedSpace ? [
+      { id: 'new-note', group: 'Actions', label: 'New note', run: newNote },
+      { id: 'import-url', group: 'Actions', label: 'Import from URL', run: () => setImporting(true) },
     ] : []
 
     if (!query) commands.push(...actions)
@@ -83,7 +109,7 @@ export function DashboardPage() {
       group: 'Notes',
       label: n.title || n.content.slice(0, 80) || 'Untitled note',
       hint: selectedSpace?.name,
-      run: () => space?.openNote(n.id),
+      run: () => showNote(n.id),
     })))
     commands.push(...spaceHits.map(s => ({
       id: `space-${s.id}`,
@@ -118,13 +144,27 @@ export function DashboardPage() {
       loading={loading}
       onOpenPalette={openPalette}
       selectedSpaceId={selectedSpace?.id ?? null}
-      onSelectSpace={(space: Space) => { openSpace(space.id); onPicked?.() }}
+      // The drawer stays open, so you can pick a note from the space you just opened.
+      onSelectSpace={(space: Space) => openSpace(space.id)}
       onCreateSpace={async name => {
         const space = await createSpace(name)
         if (space) { openSpace(space.id); onPicked?.() }
       }}
       onDeleteSpace={deleteSpace}
-    />
+    >
+      {selectedSpace && (
+        <NoteList
+          notes={notes}
+          loading={notesLoading}
+          embedStatus={embedStatus}
+          selectedNoteId={noteId ?? null}
+          onSelect={id => { showNote(id); onPicked?.() }}
+          onNewNote={() => { newNote(); onPicked?.() }}
+          onImportUrl={() => { onPicked?.(); setImporting(true) }}
+          onIndexMissing={indexMissing}
+        />
+      )}
+    </Sidebar>
   )
 
   if (!loading) {
@@ -135,6 +175,8 @@ export function DashboardPage() {
     }
     // Unknown or just-deleted space: fall back to the plain /app view.
     else if (!selectedSpace) return <Navigate to="/app" replace />
+    // Unknown or deleted note: back to the space.
+    else if (noteId && !notesLoading && !openNote) return <Navigate to={`/app/${spaceId}`} replace />
   }
 
   return (
@@ -144,6 +186,16 @@ export function DashboardPage() {
       </div>
 
       {paletteOpen && <CommandPalette getCommands={getCommands} onClose={() => setPaletteOpen(false)} />}
+
+      {importing && (
+        <UrlImportModal
+          onImport={async (title, content, sourceUrl) => {
+            const note = await createNote(title, content, sourceUrl)
+            showNote(note.id)
+          }}
+          onClose={() => setImporting(false)}
+        />
+      )}
 
       {drawerOpen && (
         <SpacesDrawer onClose={() => setDrawerOpen(false)}>
@@ -156,7 +208,7 @@ export function DashboardPage() {
         <header className="md:hidden shrink-0 flex items-center gap-1 px-2 h-12 border-b border-line">
           <button
             onClick={() => setDrawerOpen(true)}
-            aria-label="Spaces"
+            aria-label="Spaces and notes"
             className="w-10 h-10 flex items-center justify-center rounded-lg text-ink-2 transition-colors hover:text-ink hover:bg-tint"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -177,10 +229,24 @@ export function DashboardPage() {
           </button>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0">
           {selectedSpace ? (
-            // key remounts per space so chat history and drafts don't carry over
-            <SpaceView ref={setSpace} key={selectedSpace.id} space={selectedSpace} />
+            // key remounts per space so chat history doesn't carry over
+            <SpaceView
+              ref={setSpace}
+              key={selectedSpace.id}
+              spaceId={selectedSpace.id}
+              notes={notes}
+              note={openNote}
+              status={openNote && embedStatus[openNote.id]}
+              isNew={isNew}
+              onSave={updateNote}
+              onRetryEmbed={retryEmbedding}
+              onDelete={removeNote}
+              onOpenNote={showNote}
+              onNewNote={newNote}
+              onImportUrl={() => setImporting(true)}
+            />
           ) : loading ? (
             // Spaces still loading: the sidebar shows skeletons; keep this calm.
             null

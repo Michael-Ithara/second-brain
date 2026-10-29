@@ -63,11 +63,11 @@ Deno.serve(async (req) => {
     // Split the note, then embed each chunk with the title in front so a chunk
     // from the middle of a note still carries what the note is about.
     const title = note.title ?? ''
+    // An empty note has no chunks; replacing with none clears its old ones.
     const chunks = chunkText(note.content)
-    const embeddings = await embed(
-      chunks.map(c => (title ? `${title}\n\n${c}` : c)),
-      'document',
-    )
+    const embeddings = chunks.length
+      ? await embed(chunks.map(c => (title ? `${title}\n\n${c}` : c)), 'document')
+      : []
 
     // Swap the note's chunks in one transaction. Passing the text we chunked
     // lets the DB skip the write if the note was edited while we were working.

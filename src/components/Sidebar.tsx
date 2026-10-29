@@ -13,9 +13,11 @@ interface Props {
   onCreateSpace: (name: string) => Promise<void>
   onDeleteSpace: (id: string) => void
   onOpenPalette: () => void
+  // The open space's file list, shown under the spaces.
+  children?: React.ReactNode
 }
 
-export function Sidebar({ spaces, loading, selectedSpaceId, onSelectSpace, onCreateSpace, onDeleteSpace, onOpenPalette }: Props) {
+export function Sidebar({ spaces, loading, selectedSpaceId, onSelectSpace, onCreateSpace, onDeleteSpace, onOpenPalette, children }: Props) {
   const { user } = useAuth()
   const [isCreating, setIsCreating] = useState(false)
   const [newSpaceName, setNewSpaceName] = useState('')
@@ -84,7 +86,8 @@ export function Sidebar({ spaces, loading, selectedSpaceId, onSelectSpace, onCre
       </div>
 
       {/* Spaces */}
-      <nav aria-labelledby="spaces-heading" className="flex-1 overflow-y-auto px-3 py-4">
+      {/* With a file list below, spaces get at most a third of the height and scroll on their own. */}
+      <nav aria-labelledby="spaces-heading" className={`overflow-y-auto px-3 py-4 ${children ? 'shrink-0 max-h-[33%] border-b border-line' : 'flex-1'}`}>
         <div className="flex items-center justify-between mb-2 pl-2">
           <h2 id="spaces-heading" className="text-xs font-medium uppercase tracking-[0.12em] text-ink-3">
             Spaces
@@ -167,6 +170,8 @@ export function Sidebar({ spaces, loading, selectedSpaceId, onSelectSpace, onCre
           </p>
         )}
       </nav>
+
+      {children && <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>}
 
       {/* Sign out */}
       <div className="px-3 py-3 border-t border-line">
