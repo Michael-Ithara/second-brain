@@ -92,11 +92,11 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
       onCancel={handleCancel}
       onClose={onClose}
       onClick={e => { if (e.target === e.currentTarget) requestClose() }}
-      className="m-auto w-full max-w-2xl max-h-[85vh] p-0 bg-transparent backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+      className="m-auto w-[calc(100%-2rem)] max-w-2xl max-h-[85dvh] p-0 bg-transparent backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
-      <div className="flex flex-col max-h-[85vh] rounded-2xl bg-surface border border-[rgba(79,156,249,0.15)] shadow-[0_24px_64px_rgba(0,0,0,0.6)] text-ink">
+      <div className="flex flex-col max-h-[85dvh] rounded-2xl bg-surface border border-line-2 shadow-dialog text-ink">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[rgba(79,156,249,0.08)]">
+        <div className="flex items-start justify-between gap-4 px-4 sm:px-6 pt-5 pb-4 border-b border-line">
           {editing ? (
             <input
               type="text"
@@ -117,7 +117,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
           <button
             onClick={requestClose}
             aria-label="Close"
-            className="w-7 h-7 -mr-1.5 mt-0.5 flex items-center justify-center rounded-md shrink-0 text-ink-2 transition-colors hover:text-ink hover:bg-[rgba(79,156,249,0.08)]"
+            className="w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 -mr-1.5 mt-0.5 flex items-center justify-center rounded-md shrink-0 text-ink-2 transition-colors hover:text-ink hover:bg-tint-2"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -126,7 +126,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
           {editing ? (
             <textarea
               ref={contentRef}
@@ -140,7 +140,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
               className="w-full bg-transparent text-sm leading-relaxed resize-y text-ink rounded-lg p-3 border border-field focus:border-accent focus-visible:outline-none"
             />
           ) : (
-            <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap break-words">
+            <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap wrap-break-word">
               {note.content}
             </p>
           )}
@@ -150,7 +150,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-[rgba(79,156,249,0.08)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-line">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3 min-w-0">
             {editing ? (
               <span>{modKey} + Enter to save · Esc to cancel</span>
@@ -188,7 +188,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={!content.trim() || saving}
-                  className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
+                  className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -196,7 +196,7 @@ export function NoteDialog({ note, status, onSave, onRetry, onClose }: Props) {
             ) : (
               <button
                 onClick={startEditing}
-                className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors text-accent bg-[rgba(79,156,249,0.06)] border border-[rgba(79,156,249,0.25)] hover:bg-[rgba(79,156,249,0.12)]"
+                className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors text-accent bg-tint border border-line-2 hover:bg-tint-2"
               >
                 Edit
               </button>

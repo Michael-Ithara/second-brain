@@ -63,9 +63,9 @@ export function UrlImportModal({ onImport, onClose }: Props) {
       onClose={onClose}
       // A click on the backdrop lands on the <dialog> itself; clicks on content land on children.
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      className="m-auto w-full max-w-lg p-0 bg-transparent backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg p-0 bg-transparent backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
-      <div className="rounded-2xl p-6 bg-surface border border-[rgba(79,156,249,0.15)] shadow-[0_24px_64px_rgba(0,0,0,0.6)] text-ink">
+      <div className="rounded-2xl p-4 sm:p-6 bg-surface border border-line-2 shadow-dialog text-ink">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 id="url-import-title" className="font-display text-lg font-semibold text-ink">
@@ -74,7 +74,7 @@ export function UrlImportModal({ onImport, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 -mr-1.5 flex items-center justify-center rounded-md text-ink-2 transition-colors hover:text-ink hover:bg-[rgba(79,156,249,0.08)]"
+            className="w-7 h-7 pointer-coarse:w-10 pointer-coarse:h-10 -mr-1.5 flex items-center justify-center rounded-md text-ink-2 transition-colors hover:text-ink hover:bg-tint-2"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -94,12 +94,12 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             aria-label="Article URL"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'url-import-error' : undefined}
-            className="flex-1 text-sm rounded-xl px-3.5 py-2.5 bg-[rgba(79,156,249,0.04)] border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
+            className="flex-1 text-sm rounded-xl px-3.5 py-2.5 bg-tint border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
           />
           <button
             onClick={handleFetch}
             disabled={!url.trim() || loading}
-            className="font-display text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0 bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
+            className="font-display text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0 bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             {loading && !preview ? 'Fetching...' : 'Fetch'}
           </button>
@@ -112,7 +112,7 @@ export function UrlImportModal({ onImport, onClose }: Props) {
 
         {/* Preview */}
         {preview && (
-          <div className="rounded-xl p-4 mb-4 bg-[rgba(79,156,249,0.03)] border border-[rgba(79,156,249,0.1)]">
+          <div className="rounded-xl p-4 mb-4 bg-tint border border-line">
             <p className="font-display text-sm font-semibold mb-1 text-ink">
               {preview.title || 'Untitled'}
             </p>
@@ -137,7 +137,7 @@ export function UrlImportModal({ onImport, onClose }: Props) {
             <button
               onClick={handleImport}
               disabled={loading}
-              className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-canvas hover:bg-accent-hover disabled:opacity-60"
+              className="font-display text-xs font-semibold px-4 py-2 rounded-xl transition-colors bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-60"
             >
               {loading ? 'Importing...' : 'Import as note'}
             </button>

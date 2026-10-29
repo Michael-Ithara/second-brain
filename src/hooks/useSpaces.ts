@@ -10,18 +10,20 @@ export function useSpaces() {
 
   useEffect(() => {
     if (!user) return
-    fetchSpaces()
-  }, [user])
+    let cancelled = false
 
-  const fetchSpaces = async () => {
-    const { data, error } = await supabase
+    supabase
       .from('spaces')
       .select('*')
       .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (!error && data) setSpaces(data)
+        setLoading(false)
+      })
 
-    if (!error && data) setSpaces(data)
-    setLoading(false)
-  }
+    return () => { cancelled = true }
+  }, [user])
 
   const createSpace = async (name: string, description?: string) => {
     if (!user) return

@@ -28,7 +28,7 @@ export function NoteForm({ onSubmit }: Props) {
   return (
     // The fields drop their own outline; the card's focus-within border is the
     // focus indicator (accent, 7:1), so focus stays visible.
-    <div className="rounded-xl p-4 mb-6 transition-colors duration-200 bg-[rgba(79,156,249,0.03)] border border-field focus-within:border-accent">
+    <div className="rounded-xl p-4 mb-6 transition-colors duration-200 bg-surface border border-field focus-within:border-accent">
       <input
         type="text"
         value={title}
@@ -46,12 +46,12 @@ export function NoteForm({ onSubmit }: Props) {
         rows={4}
         className="w-full bg-transparent text-sm resize-none leading-relaxed text-ink placeholder:text-ink-3 focus-visible:outline-none"
       />
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[rgba(79,156,249,0.08)]">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-line">
         <span className="text-xs text-ink-3">{modKey} + Enter to save</span>
         <button
           onClick={handleSubmit}
           disabled={!canSave}
-          className="font-display text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors duration-200 bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
+          className="font-display text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors duration-200 bg-accent text-on-accent hover:bg-accent-hover disabled:bg-tint disabled:text-ink-3 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
