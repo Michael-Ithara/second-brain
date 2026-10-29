@@ -40,7 +40,6 @@ function SourceList({ sources, onOpenNote }: { sources: Source[]; onOpenNote: (i
           >
             <span className="text-accent">{i + 1}</span>
             <span className="truncate">{source.title || 'Untitled note'}</span>
-            <span className="text-ink-2">{Math.round(source.similarity * 100)}%</span>
           </button>
         ))}
       </div>

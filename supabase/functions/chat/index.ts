@@ -1,5 +1,36 @@
 import { adminClient, requireUser } from '../_shared/auth.ts'
 import Anthropic from 'npm:@anthropic-ai/sdk'
+import { embed } from '../_shared/voyage.ts'
+
+interface Chunk {
+  chunk_id: number
+  note_id: string
+  title: string
+  content: string
+  similarity: number
+  score: number
+}
+
+interface NoteHit {
+  id: string
+  title: string
+  excerpts: string[] // best-ranked chunk first
+  similarity: number // best chunk's cosine similarity
+}
+
+function groupByNote(chunks: Chunk[]): NoteHit[] {
+  const byNote = new Map<string, NoteHit>()
+  for (const c of chunks) {
+    const hit = byNote.get(c.note_id)
+    if (hit) {
+      hit.excerpts.push(c.content)
+      hit.similarity = Math.max(hit.similarity, c.similarity)
+    } else {
+      byNote.set(c.note_id, { id: c.note_id, title: c.title, excerpts: [c.content], similarity: c.similarity })
+    }
+  }
+  return [...byNote.values()] // Map keeps insertion order = RPC's score order
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,57 +79,37 @@ Deno.serve(async (req) => {
     }
 
     // Step 1 — Embed the question
-    console.log('Calling Voyage AI...')
-    const voyageResponse = await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('VOYAGE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'voyage-3-lite',
-        input: question,
-        input_type: 'query',
-      }),
-    })
+    const [questionEmbedding] = await embed([question], 'query')
 
-    console.log('Voyage status:', voyageResponse.status)
-    const voyageData = await voyageResponse.json()
-
-    if (!voyageResponse.ok) {
-      throw new Error(`Voyage API error: ${JSON.stringify(voyageData)}`)
-    }
-
-    const questionEmbedding = voyageData.data[0].embedding
-    console.log('Question embedded, length:', questionEmbedding.length)
-
-    // Step 2 — Find similar notes
-    console.log('Searching similar notes...')
-    const { data: similarNotes, error: searchError } = await supabase.rpc('match_notes', {
+    // Step 2 — Hybrid search: vector similarity + keywords, merged by rank
+    const { data: chunks, error: searchError } = await supabase.rpc('match_note_chunks', {
       query_embedding: questionEmbedding,
+      query_text: question,
       match_space_id: spaceId,
-      match_threshold: 0.5,
-      match_count: 5,
+      match_count: 8,
     })
 
-    if (searchError) {
-      console.log('Search error:', JSON.stringify(searchError))
-      throw searchError
-    }
+    if (searchError) throw searchError
 
-    console.log('Similar notes found:', similarNotes?.length ?? 0)
-
-    // Step 3 — Build context
-    const context = similarNotes?.length > 0
-      ? similarNotes
-          .map((note: { title: string; content: string }, i: number) =>
-            `Source ${i + 1}${note.title ? ` — ${note.title}` : ''}:\n${note.content}`
+    // Step 3 — Group chunks by note, keeping the best-ranked note first, so
+    // Claude sees one source per note and the source numbers match the UI.
+    const notes = groupByNote((chunks ?? []) as Chunk[])
+    const context = notes.length > 0
+      ? notes
+          .map((note, i) =>
+            `Source ${i + 1}${note.title ? ` — ${note.title}` : ''}:\n${note.excerpts.join('\n\n[…]\n\n')}`
           )
           .join('\n\n')
       : 'No relevant notes found.'
 
+    const sources = notes.map(n => ({
+      id: n.id,
+      title: n.title,
+      content: n.excerpts[0],
+      similarity: n.similarity,
+    }))
+
     // Step 4 — Ask Claude
-    console.log('Calling Anthropic...')
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
     })
@@ -118,11 +129,10 @@ Always cite which source(s) you used in your answer.`,
       ],
     })
 
-    console.log('Anthropic responded')
     const answer = message.content[0].type === 'text' ? message.content[0].text : ''
 
     return new Response(
-      JSON.stringify({ answer, sources: similarNotes }),
+      JSON.stringify({ answer, sources }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
