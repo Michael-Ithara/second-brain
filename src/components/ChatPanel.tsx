@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '../hooks/useChat'
 import type { Message, Source } from '../hooks/useChat'
@@ -10,6 +10,12 @@ interface Props {
   onOpenNote: (id: string) => void
   // Starter questions built from this space's notes; empty when there are none.
   suggestions: string[]
+  ref?: React.Ref<ChatPanelHandle>
+}
+
+export interface ChatPanelHandle {
+  // Ask from outside the composer (the command palette).
+  ask: (question: string) => void
 }
 
 function SourceList({ sources, onOpenNote }: { sources: Source[]; onOpenNote: (id: string) => void }) {
@@ -187,7 +193,7 @@ function Answer({ msg, isLast, onOpenNote, onRetry }: AnswerProps) {
   )
 }
 
-export function ChatPanel({ spaceId, onOpenNote, suggestions }: Props) {
+export function ChatPanel({ spaceId, onOpenNote, suggestions, ref }: Props) {
   const { messages, loading, sendMessage, retryLast, stop, clearMessages } = useChat(spaceId)
   const [input, setInput] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
@@ -221,6 +227,16 @@ export function ChatPanel({ spaceId, onOpenNote, suggestions }: Props) {
     stickToBottom.current = true
     sendMessage(question.trim())
   }
+
+  useImperativeHandle(ref, () => ({
+    ask: question => {
+      if (!loading) return ask(question)
+      // An answer is still streaming: leave the question ready to send.
+      setInput(question)
+      inputRef.current?.focus()
+      requestAnimationFrame(resize)
+    },
+  }))
 
   const handleSend = () => {
     if (!input.trim() || loading) return

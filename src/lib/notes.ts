@@ -18,3 +18,9 @@ export function hostOf(url: string) {
     return url
   }
 }
+
+// Every word must appear in the text, in any order, ignoring case.
+export function matchesQuery(text: string, query: string) {
+  const hay = text.toLowerCase()
+  return query.toLowerCase().split(/\s+/).filter(Boolean).every(word => hay.includes(word))
+}

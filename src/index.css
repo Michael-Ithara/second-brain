@@ -128,10 +128,14 @@ body {
   color: var(--ink);
 }
 
-/* One focus ring for every interactive element reached by keyboard. */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+/* One focus ring for every interactive element reached by keyboard. In the base
+   layer so a field that shows focus another way (focus-visible:outline-none on a
+   composer whose card border lights up) can opt out. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 ::selection {
@@ -150,6 +154,23 @@ body {
   background: var(--accent-ink);
   animation: pulse 1s ease-in-out infinite;
 }
+
+/* Notes slide in when added (or restored by Undo) and fade out when deleted.
+   The reduced-motion rule below makes both instant. */
+@keyframes note-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+}
+@keyframes note-out {
+  to { opacity: 0; transform: scale(0.97); }
+}
+.note-enter { animation: note-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.note-leave { animation: note-out 160ms ease-in forwards; pointer-events: none; }
+
+/* Command palette opening. */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+}
+.pop-in { animation: pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 /* iOS Safari zooms the page when a field under 16px gets focus. */
 @media (pointer: coarse) {

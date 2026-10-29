@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ToastContext, type ToastInput } from '../lib/toast'
 import { UNDO_MS } from '../lib/deferred'
+import { isEditable } from '../lib/platform'
 
 interface Toast extends ToastInput {
   id: number
 }
 
 const MAX_VISIBLE = 3
-
-function isEditable(el: EventTarget | null) {
-  return el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
-}
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
   // An undo toast lives exactly as long as the undo window, so Undo is never

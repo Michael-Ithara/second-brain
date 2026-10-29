@@ -25,5 +25,6 @@ export interface Note {
 }
 
 // Whether a note can be found by chat search yet.
-// 'embedding' = request in flight, 'missing' = no vector stored (failed or never ran).
-export type EmbedStatus = 'embedding' | 'missing'
+// 'saving' = new note not stored yet (shown optimistically), 'embedding' = request
+// in flight, 'missing' = no vector stored (failed or never ran).
+export type EmbedStatus = 'saving' | 'embedding' | 'missing'

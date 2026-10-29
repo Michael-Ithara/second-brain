@@ -1,18 +1,41 @@
-import { useState } from 'react'
-import type { Space } from '../types'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
+import type { Note, Space } from '../types'
 import { useNotes } from '../hooks/useNotes'
-import { NoteForm } from './NoteForm'
+import { isEditable } from '../lib/platform'
+import { matchesQuery } from '../lib/notes'
+import { NoteForm, type NoteFormHandle } from './NoteForm'
 import { NoteCard } from './NoteCard'
-import { ChatPanel } from './ChatPanel'
+import { ChatPanel, type ChatPanelHandle } from './ChatPanel'
 import { UrlImportModal } from './UrlImportModal'
 import { NoteDialog } from './NoteDialog'
 
-interface Props {
-  space: Space
+// What the command palette can do inside the open space.
+export interface SpaceViewHandle {
+  notes: Note[]
+  newNote: () => void
+  importUrl: () => void
+  ask: (question: string) => void
+  openNote: (id: string) => void
 }
 
-export function SpaceView({ space }: Props) {
-  const { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding, indexMissing } = useNotes(space.id)
+interface Props {
+  space: Space
+  ref?: React.Ref<SpaceViewHandle>
+}
+
+function NoteSkeleton() {
+  return (
+    <div className="rounded-xl p-4 bg-surface border border-line animate-pulse" aria-hidden="true">
+      <div className="h-3.5 w-2/5 rounded bg-tint-2" />
+      <div className="mt-3 h-2.5 w-full rounded bg-tint" />
+      <div className="mt-2 h-2.5 w-4/5 rounded bg-tint" />
+      <div className="mt-4 h-2 w-16 rounded bg-tint" />
+    </div>
+  )
+}
+
+export function SpaceView({ space, ref }: Props) {
+  const { notes, loading, embedStatus, fresh, createNote, updateNote, deleteNote, retryEmbedding, indexMissing } = useNotes(space.id)
   const statuses = Object.values(embedStatus)
   const missingCount = statuses.filter(s => s === 'missing').length
   const indexing = statuses.includes('embedding')
@@ -22,6 +45,32 @@ export function SpaceView({ space }: Props) {
   // so switching doesn't lose the chat or a half-written note.
   const [pane, setPane] = useState<'notes' | 'chat'>('notes')
   const openNote = notes.find(n => n.id === openNoteId)
+  const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<NoteFormHandle>(null)
+  const chatRef = useRef<ChatPanelHandle>(null)
+  const shown = query.trim() ? notes.filter(n => matchesQuery(`${n.title}\n${n.content}`, query)) : notes
+
+  useImperativeHandle(ref, () => ({
+    notes,
+    newNote: () => { setPane('notes'); formRef.current?.focus() },
+    importUrl: () => setShowUrlModal(true),
+    ask: question => { setPane('chat'); chatRef.current?.ask(question) },
+    openNote: setOpenNoteId,
+  }), [notes])
+
+  // "/" jumps to the filter box, as on GitHub and YouTube.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || isEditable(e.target)) return
+      if (!searchRef.current || document.querySelector('dialog[open]')) return
+      e.preventDefault()
+      setPane('notes')
+      searchRef.current.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   // Starter questions for the empty chat, from the newest titled notes.
   const suggestions = notes.length === 0 ? [] : [
     ...notes.filter(n => n.title).slice(0, 2).map((n, i) =>
@@ -86,9 +135,11 @@ export function SpaceView({ space }: Props) {
                     {space.description}
                   </p>
                 )}
-                <p className="text-xs mt-1 text-ink-3">
-                  {notes.length} {notes.length === 1 ? 'note' : 'notes'}
-                </p>
+                {!loading && (
+                  <p className="text-xs mt-1 text-ink-3">
+                    {query.trim() && `${shown.length} of `}{notes.length} {notes.length === 1 ? 'note' : 'notes'}
+                  </p>
+                )}
               </div>
 
               {/* Import URL button */}
@@ -105,7 +156,7 @@ export function SpaceView({ space }: Props) {
             </div>
           </div>
 
-          <NoteForm onSubmit={createNote} />
+          <NoteForm ref={formRef} onSubmit={createNote} />
 
           {/* One card's Retry is enough for one note; past that, offer a bulk fix. */}
           {missingCount > 1 && (
@@ -123,14 +174,48 @@ export function SpaceView({ space }: Props) {
             </div>
           )}
 
+          {notes.length > 0 && (
+            <div className="relative mb-4">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key !== 'Escape') return
+                  // First Escape clears, the next leaves the box.
+                  if (query) { e.preventDefault(); setQuery('') }
+                  else e.currentTarget.blur()
+                }}
+                placeholder="Filter notes"
+                aria-label="Filter notes"
+                className="w-full text-sm rounded-lg pl-9 pr-9 py-2 pointer-coarse:py-2.5 bg-surface border border-field text-ink placeholder:text-ink-3 transition-colors focus:border-ring focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query ? (
+                <button
+                  onClick={() => { setQuery(''); searchRef.current?.focus() }}
+                  aria-label="Clear filter"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 pointer-coarse:w-9 pointer-coarse:h-9 flex items-center justify-center rounded-md text-ink-3 hover:text-ink hover:bg-tint"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              ) : (
+                <kbd className="pointer-coarse:hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-[0.7rem] leading-none px-1.5 py-1 rounded border border-line-2 text-ink-3 font-sans">/</kbd>
+              )}
+            </div>
+          )}
+
           {loading ? (
-            <div role="status" className="flex items-center gap-2 mt-4">
+            <div role="status" className="flex flex-col gap-3">
               <span className="sr-only">Loading notes</span>
-              {[0,1,2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-accent-ink animate-pulse" aria-hidden="true"
-                  style={{ animationDelay: `${i * 0.2}s` }}
-                />
-              ))}
+              <NoteSkeleton />
+              <NoteSkeleton />
+              <NoteSkeleton />
             </div>
           ) : notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -145,11 +230,24 @@ export function SpaceView({ space }: Props) {
                 No notes yet. Add one above.
               </p>
             </div>
+          ) : shown.length === 0 ? (
+            <div className="flex flex-col items-center py-12 gap-2 text-center">
+              <p className="text-sm text-ink-2">
+                No notes match “{query.trim()}”.
+              </p>
+              <button
+                onClick={() => { setQuery(''); searchRef.current?.focus() }}
+                className="text-xs rounded text-accent-ink hover:text-accent-ink-hover hover:underline"
+              >
+                Clear filter
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {notes.map(note => (
+              {shown.map(note => (
                 <NoteCard
-                  key={note.id}
+                  key={fresh[note.id] ?? note.id}
+                  entering={note.id in fresh}
                   note={note}
                   status={embedStatus[note.id]}
                   onOpen={setOpenNoteId}
@@ -164,7 +262,7 @@ export function SpaceView({ space }: Props) {
 
       {/* Chat panel */}
       <div className={`${pane === 'chat' ? 'flex' : 'hidden'} lg:flex flex-1 lg:flex-none min-h-0 lg:w-96 flex-col lg:border-l border-line`}>
-        <ChatPanel spaceId={space.id} onOpenNote={setOpenNoteId} suggestions={suggestions} />
+        <ChatPanel ref={chatRef} spaceId={space.id} onOpenNote={setOpenNoteId} suggestions={suggestions} />
       </div>
     </div>
   )
