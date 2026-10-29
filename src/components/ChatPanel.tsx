@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '../hooks/useChat'
 import type { Source } from '../hooks/useChat'
+import { useReducedMotion } from '../hooks/useReducedMotion'
+import { modKey } from '../lib/platform'
 
 interface Props {
   spaceId: string
@@ -12,7 +14,7 @@ function SourceList({ sources }: { sources: Source[] }) {
 
   if (sources.length === 0) {
     return (
-      <p className="text-xs mt-1" style={{ color: '#94a3b8', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <p className="text-xs mt-1 text-ink-2">
         No matching notes. This answer isn't based on your notes.
       </p>
     )
@@ -22,7 +24,7 @@ function SourceList({ sources }: { sources: Source[] }) {
 
   return (
     <div className="mt-1">
-      <p className="text-xs mb-1.5" style={{ color: '#94a3b8', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <p className="text-xs mb-1.5 text-ink-2">
         Sources
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -31,34 +33,18 @@ function SourceList({ sources }: { sources: Source[] }) {
             key={source.id}
             onClick={() => setOpenId(openId === source.id ? null : source.id)}
             aria-expanded={openId === source.id}
-            className="flex items-center gap-1.5 text-xs rounded-md px-2 py-1 max-w-full transition-colors hover:bg-[rgba(79,156,249,0.12)] focus-visible:outline-2 focus-visible:outline-[#4f9cf9]"
-            style={{
-              background: openId === source.id ? 'rgba(79,156,249,0.12)' : 'rgba(79,156,249,0.05)',
-              border: '1px solid rgba(79,156,249,0.2)',
-              color: '#cbd5e1',
-              fontFamily: "'Inter', system-ui, sans-serif",
-            }}
+            className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1 max-w-full transition-colors text-[#cbd5e1] border border-[rgba(79,156,249,0.2)] hover:bg-[rgba(79,156,249,0.12)] ${
+              openId === source.id ? 'bg-[rgba(79,156,249,0.12)]' : 'bg-[rgba(79,156,249,0.05)]'
+            }`}
           >
-            <span style={{ color: '#4f9cf9' }}>{i + 1}</span>
+            <span className="text-accent">{i + 1}</span>
             <span className="truncate">{source.title || 'Untitled note'}</span>
-            <span style={{ color: '#94a3b8' }}>{Math.round(source.similarity * 100)}%</span>
+            <span className="text-ink-2">{Math.round(source.similarity * 100)}%</span>
           </button>
         ))}
       </div>
       {open && (
-        <p
-          className="text-xs leading-relaxed mt-2 rounded-lg px-3 py-2"
-          style={{
-            background: 'rgba(79,156,249,0.04)',
-            border: '1px solid rgba(79,156,249,0.1)',
-            color: '#94a3b8',
-            fontFamily: "'Inter', system-ui, sans-serif",
-            display: '-webkit-box',
-            WebkitLineClamp: 6,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
+        <p className="text-xs leading-relaxed mt-2 rounded-lg px-3 py-2 line-clamp-6 text-ink-2 bg-[rgba(79,156,249,0.04)] border border-[rgba(79,156,249,0.1)]">
           {open.content}
         </p>
       )}
@@ -70,10 +56,11 @@ export function ChatPanel({ spaceId }: Props) {
   const { messages, loading, sendMessage, clearMessages } = useChat(spaceId)
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    bottomRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' })
+  }, [messages, reducedMotion])
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -87,47 +74,35 @@ export function ChatPanel({ spaceId }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: '#080c14' }}>
+    <section aria-labelledby="chat-heading" className="flex flex-col h-full bg-canvas">
 
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: '1px solid rgba(79,156,249,0.08)' }}
-      >
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(79,156,249,0.08)]">
         <div className="flex items-center gap-2">
           <div
             className="w-5 h-5 rounded-md flex items-center justify-center"
             style={{ background: 'rgba(79,156,249,0.15)', border: '1px solid rgba(79,156,249,0.3)' }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="2" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <h3
-            className="text-sm font-semibold"
-            style={{
-              color: '#e2e8f0',
-              fontFamily: "'Space Grotesk', system-ui, sans-serif",
-            }}
-          >
+          <h3 id="chat-heading" className="font-display text-sm font-semibold text-ink">
             Ask your notes
           </h3>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearMessages}
-            className="text-xs transition-colors duration-200"
-            style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#475569')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#1e3a5f')}
+            className="text-xs px-2 py-1 -mr-2 rounded-md transition-colors duration-200 text-ink-2 hover:text-ink"
           >
-            Clear
+            Clear chat
           </button>
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+      {/* Messages. role="log" makes screen readers announce new answers as they arrive. */}
+      <div role="log" aria-live="polite" className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
 
         {/* Empty state */}
         {messages.length === 0 && (
@@ -136,21 +111,15 @@ export function ChatPanel({ spaceId }: Props) {
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(79,156,249,0.08)', border: '1px solid rgba(79,156,249,0.15)' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="1.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f9cf9" strokeWidth="1.5" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
             <div className="text-center">
-              <p
-                className="text-xs font-medium mb-1"
-                style={{ color: '#475569', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
-              >
+              <p className="font-display text-xs font-medium mb-1 text-ink-2">
                 Ask your notes
               </p>
-              <p
-                className="text-xs leading-relaxed"
-                style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}
-              >
+              <p className="text-xs leading-relaxed text-ink-3">
                 Ask anything and I'll search your notes to answer.
               </p>
             </div>
@@ -161,48 +130,31 @@ export function ChatPanel({ spaceId }: Props) {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className="max-w-[88%] rounded-xl text-sm leading-relaxed"
-              style={msg.role === 'user' ? {
-                background: 'rgba(79,156,249,0.1)',
-                border: '1px solid rgba(79,156,249,0.2)',
-                color: '#e2e8f0',
-                padding: '0.625rem 0.875rem',
-                fontFamily: "'Inter', system-ui, sans-serif",
-              } : {
-                background: 'transparent',
-                color: '#64748b',
-                padding: '0',
-                fontFamily: "'Inter', system-ui, sans-serif",
-              }}
+              className={`max-w-[88%] rounded-xl text-sm leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-[rgba(79,156,249,0.1)] border border-[rgba(79,156,249,0.2)] text-ink px-3.5 py-2.5'
+                  : 'text-ink'
+              }`}
             >
               {msg.role === 'assistant' ? (
                 <>
+                <span className="sr-only">Answer: </span>
                 <ReactMarkdown
                   components={{
                     p: ({ children }) => (
-                      <p style={{ color: '#64748b', marginBottom: '0.5rem', lineHeight: '1.65', fontFamily: "'Inter', system-ui, sans-serif" }}>
-                        {children}
-                      </p>
+                      <p className="text-ink mb-2 leading-[1.65]">{children}</p>
                     ),
                     strong: ({ children }) => (
-                      <strong style={{ color: '#94a3b8', fontWeight: 600 }}>{children}</strong>
+                      <strong className="text-white font-semibold">{children}</strong>
                     ),
                     ul: ({ children }) => (
-                      <ul style={{ color: '#64748b', paddingLeft: '1rem', marginBottom: '0.5rem' }}>{children}</ul>
+                      <ul className="text-ink pl-4 mb-2 list-disc">{children}</ul>
                     ),
                     li: ({ children }) => (
-                      <li style={{ color: '#64748b', marginBottom: '0.25rem' }}>{children}</li>
+                      <li className="text-ink mb-1">{children}</li>
                     ),
                     code: ({ children }) => (
-                      <code style={{
-                        background: 'rgba(79,156,249,0.08)',
-                        border: '1px solid rgba(79,156,249,0.12)',
-                        padding: '0.1rem 0.35rem',
-                        borderRadius: '4px',
-                        fontSize: '0.78rem',
-                        color: '#4f9cf9',
-                        fontFamily: 'monospace',
-                      }}>
+                      <code className="font-mono text-[0.78rem] text-accent rounded px-[0.35rem] py-[0.1rem] bg-[rgba(79,156,249,0.08)] border border-[rgba(79,156,249,0.12)]">
                         {children}
                       </code>
                     ),
@@ -221,8 +173,9 @@ export function ChatPanel({ spaceId }: Props) {
 
         {/* Loading dots */}
         {loading && (
-          <div className="flex justify-start">
-            <div className="flex gap-1 py-2">
+          <div role="status" className="flex justify-start">
+            <span className="sr-only">Searching your notes</span>
+            <div className="flex gap-1 py-2" aria-hidden="true">
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
@@ -243,53 +196,31 @@ export function ChatPanel({ spaceId }: Props) {
       </div>
 
       {/* Input */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(79,156,249,0.08)' }}>
+      <div className="p-4 border-t border-[rgba(79,156,249,0.08)]">
         <div className="flex gap-2 items-end">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask a question..."
+            aria-label="Question"
+            aria-describedby="chat-hint"
             rows={2}
-            className="flex-1 text-sm outline-none resize-none rounded-xl px-3.5 py-2.5 transition-all duration-200"
-            style={{
-              background: 'rgba(79,156,249,0.04)',
-              border: '1px solid rgba(79,156,249,0.1)',
-              color: '#e2e8f0',
-              fontFamily: "'Inter', system-ui, sans-serif",
-            }}
-            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(79,156,249,0.3)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(79,156,249,0.1)')}
+            className="flex-1 text-sm resize-none rounded-xl px-3.5 py-2.5 transition-colors duration-200 bg-[rgba(79,156,249,0.04)] border border-field text-ink placeholder:text-ink-3 focus:border-accent focus-visible:outline-none"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-all duration-200 shrink-0"
-            style={{
-              background: input.trim() ? '#4f9cf9' : 'rgba(79,156,249,0.06)',
-              color: input.trim() ? '#080c14' : '#1e3a5f',
-              cursor: input.trim() ? 'pointer' : 'not-allowed',
-              fontFamily: "'Space Grotesk', system-ui, sans-serif",
-              boxShadow: input.trim() ? '0 0 16px rgba(79,156,249,0.3)' : 'none',
-            }}
-            onMouseEnter={e => {
-              if (input.trim()) e.currentTarget.style.boxShadow = '0 0 24px rgba(79,156,249,0.5)'
-            }}
-            onMouseLeave={e => {
-              if (input.trim()) e.currentTarget.style.boxShadow = '0 0 16px rgba(79,156,249,0.3)'
-            }}
+            className="font-display text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors duration-200 shrink-0 bg-accent text-canvas hover:bg-accent-hover disabled:bg-[rgba(79,156,249,0.06)] disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             Ask
           </button>
         </div>
-        <p
-          className="text-xs mt-2"
-          style={{ color: '#1e3a5f', fontFamily: "'Inter', system-ui, sans-serif" }}
-        >
-          ⌘ + Enter to send
+        <p id="chat-hint" className="text-xs mt-2 text-ink-3">
+          {modKey} + Enter to send
         </p>
       </div>
 
-    </div>
+    </section>
   )
 }

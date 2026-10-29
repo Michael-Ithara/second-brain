@@ -7,7 +7,7 @@ export function DashboardPage() {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null)
 
   return (
-    <div className="flex h-screen bg-gray-950">
+    <div className="flex h-screen bg-canvas">
       <Sidebar
         selectedSpaceId={selectedSpace?.id ?? null}
         onSelectSpace={setSelectedSpace}
@@ -19,7 +19,7 @@ export function DashboardPage() {
           <SpaceView key={selectedSpace.id} space={selectedSpace} />
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-gray-600">Select a space or create a new one</p>
+            <p className="text-ink-2">Select a space or create a new one</p>
           </div>
         )}
       </main>
