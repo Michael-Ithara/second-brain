@@ -8,6 +8,8 @@ import { cancelDeferred, defer } from '../lib/deferred'
 // Everything except `embedding` — the vector is large and the UI never needs it.
 const NOTE_COLUMNS = 'id, space_id, user_id, title, content, source_url, created_at, updated_at'
 
+let tempCount = 0
+
 export function useNotes(spaceId: string | null) {
   const { user } = useAuth()
   const toast = useToast()
@@ -15,6 +17,10 @@ export function useNotes(spaceId: string | null) {
   const [loading, setLoading] = useState(false)
   // Only notes that aren't searchable yet have an entry; absent means 'ready'.
   const [embedStatus, setEmbedStatus] = useState<Record<string, EmbedStatus>>({})
+  // Notes added since the list loaded (created, or brought back by Undo), mapped to
+  // their React key. Those cards animate in; the key stays the temporary id after
+  // the server's id arrives, so the card isn't remounted (and re-animated) then.
+  const [fresh, setFresh] = useState<Record<string, string>>({})
 
   const setStatus = (id: string, status: EmbedStatus | null) =>
     setEmbedStatus(prev => {
@@ -69,9 +75,20 @@ export function useNotes(spaceId: string | null) {
     for (const id of ids) await embed(id)
   }
 
-  // Throws on failure so the form (or import dialog) can keep the text and say so.
+  // Optimistic: the note is in the list at once, marked 'saving', and swapped for
+  // the stored row when the insert returns. Throws on failure (after taking the
+  // note back out) so the form or import dialog can keep the text and say so.
   const createNote = async (title: string, content: string, sourceUrl?: string) => {
     if (!user || !spaceId) throw new Error('Not signed in')
+
+    const tempId = `temp-${++tempCount}`
+    const now = new Date().toISOString()
+    setNotes(prev => [{
+      id: tempId, space_id: spaceId, user_id: user.id, title, content,
+      source_url: sourceUrl ?? null, created_at: now, updated_at: now,
+    }, ...prev])
+    setStatus(tempId, 'saving')
+    setFresh(prev => ({ ...prev, [tempId]: tempId }))
 
     const { data, error } = await supabase
       .from('notes')
@@ -85,9 +102,15 @@ export function useNotes(spaceId: string | null) {
       .select(NOTE_COLUMNS)
       .single()
 
-    if (error || !data) throw new Error(error?.message ?? 'Could not save the note')
+    setStatus(tempId, null)
+    if (error || !data) {
+      setNotes(prev => prev.filter(n => n.id !== tempId))
+      setFresh(prev => { const next = { ...prev }; delete next[tempId]; return next })
+      throw new Error(error?.message ?? 'Could not save the note')
+    }
 
-    setNotes(prev => [data, ...prev])
+    setNotes(prev => prev.map(n => (n.id === tempId ? data : n)))
+    setFresh(({ [tempId]: key, ...rest }) => ({ ...rest, [data.id]: key ?? tempId }))
     embed(data.id)
   }
 
@@ -128,6 +151,7 @@ export function useNotes(spaceId: string | null) {
         return next
       })
       if (status) setStatus(id, status)
+      setFresh(prev => ({ ...prev, [id]: prev[id] ?? id }))
     }
 
     setNotes(prev => prev.filter(n => n.id !== id))
@@ -153,5 +177,5 @@ export function useNotes(spaceId: string | null) {
     })
   }
 
-  return { notes, loading, embedStatus, createNote, updateNote, deleteNote, retryEmbedding: embed, indexMissing }
+  return { notes, loading, embedStatus, fresh, createNote, updateNote, deleteNote, retryEmbedding: embed, indexMissing }
 }

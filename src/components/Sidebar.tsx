@@ -3,16 +3,19 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { Space } from '../types'
 import { BrandMark } from './BrandMark'
+import { modKey } from '../lib/platform'
 
 interface Props {
   spaces: Space[]
+  loading: boolean
   selectedSpaceId: string | null
   onSelectSpace: (space: Space) => void
   onCreateSpace: (name: string) => Promise<void>
   onDeleteSpace: (id: string) => void
+  onOpenPalette: () => void
 }
 
-export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace, onDeleteSpace }: Props) {
+export function Sidebar({ spaces, loading, selectedSpaceId, onSelectSpace, onCreateSpace, onDeleteSpace, onOpenPalette }: Props) {
   const { user } = useAuth()
   const [isCreating, setIsCreating] = useState(false)
   const [newSpaceName, setNewSpaceName] = useState('')
@@ -66,6 +69,20 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
         </p>
       </div>
 
+      {/* Opens the ⌘K palette; also how touch users get to it */}
+      <div className="px-3 pt-3">
+        <button
+          onClick={onOpenPalette}
+          className="w-full flex items-center gap-2 px-3 py-2 pointer-coarse:py-3 rounded-lg text-sm text-ink-3 bg-surface border border-line transition-colors hover:border-line-2 hover:text-ink-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/>
+          </svg>
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="pointer-coarse:hidden text-[0.7rem] leading-none px-1.5 py-1 rounded border border-line-2 font-sans">{modKey} K</kbd>
+        </button>
+      </div>
+
       {/* Spaces */}
       <nav aria-labelledby="spaces-heading" className="flex-1 overflow-y-auto px-3 py-4">
         <div className="flex items-center justify-between mb-2 pl-2">
@@ -96,6 +113,17 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
             aria-label="New space name"
             className="w-full text-sm rounded-lg px-3 py-2 mb-1 bg-surface border border-field text-ink placeholder:text-ink-3 focus:border-ring focus-visible:outline-none"
           />
+        )}
+
+        {loading && (
+          <div role="status" className="flex flex-col gap-1 px-1">
+            <span className="sr-only">Loading spaces</span>
+            {['w-3/5', 'w-4/5', 'w-1/2'].map(w => (
+              <div key={w} className="h-9 flex items-center px-2" aria-hidden="true">
+                <div className={`h-2.5 ${w} rounded bg-tint-2 animate-pulse`} />
+              </div>
+            ))}
+          </div>
         )}
 
         <ul>
@@ -133,7 +161,7 @@ export function Sidebar({ spaces, selectedSpaceId, onSelectSpace, onCreateSpace,
           })}
         </ul>
 
-        {spaces.length === 0 && !isCreating && (
+        {!loading && spaces.length === 0 && !isCreating && (
           <p className="text-xs px-2 mt-2 text-ink-3">
             No spaces yet. Select + to create one.
           </p>
